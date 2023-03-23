@@ -1,0 +1,26 @@
+<.header>
+  List <%= @list.id %>
+  <:subtitle>This is a list record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/lists/#{@list}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit list</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Title"><%= @list.title %></:item>
+</.list>
+
+<.back navigate={~p"/lists"}>Back to lists</.back>
+
+<.modal :if={@live_action == :edit} id="list-modal" show on_cancel={JS.patch(~p"/lists/#{@list}")}>
+  <.live_component
+    module={FormsWeb.ListLive.FormComponent}
+    id={@list.id}
+    title={@page_title}
+    action={@live_action}
+    list={@list}
+    patch={~p"/lists/#{@list}"}
+  />
+</.modal>
