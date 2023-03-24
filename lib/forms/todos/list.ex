@@ -6,6 +6,8 @@ defmodule Forms.Todos.List do
     field :title, :string
 
     has_many :todos, Forms.Todos.Todo
+    belongs_to :user, Forms.Accounts.User
+
     timestamps()
   end
 

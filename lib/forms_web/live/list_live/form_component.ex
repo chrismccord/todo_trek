@@ -76,7 +76,7 @@ defmodule FormsWeb.ListLive.FormComponent do
   end
 
   defp save_list(socket, :edit, list_params) do
-    case Todos.update_list(socket.assigns.list, list_params) do
+    case Todos.update_list(socket.assigns.scope, socket.assigns.list, list_params) do
       {:ok, list} ->
         notify_parent({:saved, list})
 
@@ -91,7 +91,7 @@ defmodule FormsWeb.ListLive.FormComponent do
   end
 
   defp save_list(socket, :new, list_params) do
-    case Todos.create_list(list_params) do
+    case Todos.create_list(socket.assigns.scope, list_params) do
       {:ok, list} ->
         notify_parent({:saved, list})
 

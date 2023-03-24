@@ -19,7 +19,7 @@
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "/Users/chris/oss/phoenix/assets/js/phoenix"
-import {LiveSocket} from "phoenix_live_view"
+import {LiveSocket} from "/Users/chris/oss/phoenix_live_view/assets/js/phoenix_live_view"
 import topbar from "../vendor/topbar"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

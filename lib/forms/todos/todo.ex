@@ -7,7 +7,10 @@ defmodule Forms.Todos.Todo do
   schema "todos" do
     field :status, Ecto.Enum, values: [:started, :completed]
     field :title, :string
-    field :list_id, :id
+    field :position, :integer
+
+    belongs_to :list, Forms.Todos.List
+    belongs_to :user, Forms.Accounts.User
 
     timestamps()
   end

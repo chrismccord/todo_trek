@@ -1,5 +1,5 @@
 <.header>
-  Listing Lists
+  My Lists
   <:actions>
     <.link patch={~p"/lists/new"}>
       <.button>New List</.button>
@@ -31,6 +31,7 @@
 
 <.modal :if={@live_action in [:new, :edit]} id="list-modal" show on_cancel={JS.patch(~p"/lists")}>
   <.live_component
+    scope={@scope}
     module={FormsWeb.ListLive.FormComponent}
     id={@list.id || :new}
     title={@page_title}
