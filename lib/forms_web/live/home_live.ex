@@ -1,124 +1,115 @@
-defmodule FormsWeb.HomeLive do
-  use FormsWeb, :live_view
+defmodule FormsWeb.TodoListComponent do
+  use FormsWeb, :live_component
 
   alias Forms.Todos
   alias Forms.Todos.Todo
 
   def render(assigns) do
     ~H"""
-    <div id="lists" phx-update="stream" class="space-y-5">
-      <div :for={{id, list} <- @streams.lists} id={id}>
-        <.header>
-          <%= list.title %>
-          <:actions>
-            <.link patch={~p"/lists/new"}>
-              <.button>New List</.button>
-            </.link>
-          </:actions>
-        </.header>
-
-        <.button phx-click={JS.push("new", value: %{at: 0, list_id: list.id})}>prepend</.button>
-        <div id={"todos-#{list.id}"} class="space-y-3 my-5" phx-update="stream">
-          <div :for={{id, todo} <- @streams["todos-#{list.id}"]} id={id}>
-            <.simple_form
-              for={todo}
-              phx-change="validate"
-              phx-submit="save"
-              phx-value-id={todo.data.id}
-              phx-value-list_id={list.id}
-            >
-              <div class="flex">
-                <button type="button" phx-click="delete" phx-value-id={todo.data.id} class="w-10">
-                  <.icon name="hero-x-mark" />
-                </button>
-                <div class="flex-auto">
-                  <.input
-                    type="text"
-                    field={todo[:title]}
-                    placeholder="New todo..."
-                    phx-mounted={JS.focus()}
-                  />
-                </div>
+    <div>
+      <div
+        id={"todos-#{@list_id}"}
+        phx-update="stream"
+        phx-hook="Sortable"
+        data-drop="reposition"
+        class="space-y-3 my-5"
+      >
+        <div :for={{id, form} <- @streams.todos} id={id} data-id={form.data.id}>
+          <.simple_form
+            for={form}
+            phx-change="validate"
+            phx-submit="save"
+            phx-value-id={form.data.id}
+            phx-target={@myself}
+          >
+            <div class="flex">
+              <button
+                type="button"
+                phx-click={JS.push("delete", target: @myself, value: %{id: form.data.id})}
+                class="w-10"
+              >
+                <.icon name="hero-x-mark" />
+              </button>
+              <div class="flex-auto">
+                <.input
+                  type="text"
+                  field={form[:title]}
+                  placeholder="New todo..."
+                  phx-mounted={JS.focus()}
+                />
               </div>
-            </.simple_form>
-          </div>
+            </div>
+          </.simple_form>
         </div>
-        <.button phx-click={JS.push("new", value: %{at: -1, list_id: list.id})}>append</.button>
       </div>
+      <.button phx-click={JS.push("new", value: %{at: -1, list_id: @list_id}, target: @myself)}>
+        add todo
+      </.button>
     </div>
     """
   end
 
-  def mount(_params, _session, socket) do
-    lists = Todos.list_lists(socket.assigns.scope, 10)
+  def update(%{list: list} = assigns, socket) do
+    todo_forms = Enum.map(list.todos, &to_change_form(&1, %{}))
 
-    socket =
-      Enum.reduce(lists, socket, fn list, acc ->
-        stream(acc, "todos-#{list.id}", for(todo <- list.todos, do: to_change_form(todo, %{})))
-      end)
-
-    {:ok, stream(socket, :lists, lists)}
+    {:ok,
+     socket
+     |> assign(list_id: list.id, scope: assigns.scope)
+     |> stream(:todos, todo_forms)}
   end
 
-  def handle_event("validate", %{"todo" => todo_params, "list_id" => list_id} = params, socket) do
-    list = Todos.get_list!(list_id)
-    todo = %Todo{id: params["id"], list_id: list.id}
-
-    {:noreply,
-     socket
-     |> stream_insert(:lists, list)
-     |> stream_insert_todo(list.id, to_change_form(todo, todo_params, :validate))}
+  def handle_event("validate", %{"todo" => todo_params} = params, socket) do
+    todo = %Todo{id: params["id"], list_id: socket.assigns.list_id}
+    {:noreply, stream_insert(socket, :todos, to_change_form(todo, todo_params, :validate))}
   end
 
   def handle_event("save", %{"id" => id, "todo" => params}, socket) do
-    todo = Todos.get_todo!(id)
+    todo = Todos.get_todo!(socket.assigns.scope, id)
 
     case Todos.update_todo(socket.assigns.scope, todo, params) do
       {:ok, updated_todo} ->
-        {:noreply,
-         socket
-         |> stream_insert(:lists, todo.list)
-         |> stream_insert_todo(todo.list.id, to_change_form(updated_todo, %{}))}
+        {:noreply, stream_insert(socket, :todos, to_change_form(updated_todo, %{}))}
 
       {:error, changeset} ->
-        {:noreply,
-         socket
-         |> stream_insert(:lists, todo.list)
-         |> stream_insert_todo(todo.list.id, to_change_form(changeset, %{}))}
+        {:noreply, stream_insert(socket, :todos, to_change_form(changeset, %{}, :insert))}
     end
   end
 
-  def handle_event("save", %{"todo" => params, "list_id" => list_id}, socket) do
-    list = Todos.get_list!(list_id)
-    {:ok, new_todo} = Todos.create_todo(socket.assigns.scope, list, params)
-    empty_todo = to_change_form(build_todo(list_id), %{})
+  def handle_event("save", %{"todo" => params}, socket) do
+    list = Todos.get_list!(socket.assigns.scope, socket.assigns.list_id)
 
-    {:noreply,
-     socket
-     |> stream_insert(:lists, list)
-     |> stream_insert_todo(list.id, to_change_form(new_todo, %{}))
-     |> stream_delete_todo(list.id, empty_todo)
-     |> stream_insert_todo(list.id, empty_todo)}
+    case Todos.create_todo(socket.assigns.scope, list, params) do
+      {:ok, new_todo} ->
+        empty_form = to_change_form(build_todo(socket.assigns.list_id), %{})
+
+        {:noreply,
+         socket
+         |> stream_insert(:todos, to_change_form(new_todo, %{}))
+         |> stream_delete(:todos, empty_form)
+         |> stream_insert(:todos, empty_form)}
+
+      {:error, changeset} ->
+        {:noreply, stream_insert(socket, :todos, to_change_form(changeset, params, :insert))}
+    end
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
-    todo = Todos.get_todo!(id)
+    todo = Todos.get_todo!(socket.assigns.scope, id)
     {:ok, _} = Todos.delete_todo(socket.assigns.scope, todo)
 
-    {:noreply,
-     socket
-     |> stream_insert(:lists, todo.list)
-     |> stream_delete_todo(todo.list.id, to_change_form(todo, %{}))}
+    {:noreply, stream_delete(socket, :todos, to_change_form(todo, %{}))}
   end
 
-  def handle_event("new", %{"at" => at, "list_id" => list_id}, socket) do
-    list = Todos.get_list!(list_id)
-    todo = build_todo(list.id)
+  def handle_event("new", %{"at" => at}, socket) do
+    todo = build_todo(socket.assigns.list_id)
 
-    {:noreply,
-     socket
-     |> stream_insert(:lists, list)
-     |> stream_insert_todo(list.id, to_change_form(todo, %{}), at: at)}
+    {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}), at: at)}
+  end
+
+  def handle_event("reposition", %{"id" => id, "new" => new_idx, "old" => _old_idx}, socket) do
+    todo = Todos.get_todo!(socket.assigns.scope, id)
+    Todos.update_todo_position(socket.assigns.scope, todo, new_idx)
+    {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}), at: new_idx)}
   end
 
   defp to_change_form(todo_or_changeset, params, action \\ nil) do
@@ -131,12 +122,33 @@ defmodule FormsWeb.HomeLive do
   end
 
   defp build_todo(list_id), do: %Todo{list_id: list_id}
+end
 
-  defp stream_insert_todo(socket, list_id, todo_form, opts \\ []) do
-    stream_insert(socket, "todos-#{list_id}", todo_form, opts)
+defmodule FormsWeb.HomeLive do
+  use FormsWeb, :live_view
+
+  alias Forms.Todos
+
+  def render(assigns) do
+    ~H"""
+    <div id="lists" phx-update="stream" class="space-y-5">
+      <div :for={{id, list} <- @streams.lists} id={id}>
+        <.header>
+          <%= list.title %>
+          <:actions>
+            <.link patch={~p"/lists/new"}>
+              <.button>Edit List</.button>
+            </.link>
+          </:actions>
+        </.header>
+        <.live_component id={list.id} module={FormsWeb.TodoListComponent} scope={@scope} list={list} />
+      </div>
+    </div>
+    """
   end
 
-  defp stream_delete_todo(socket, list_id, todo_form) do
-    stream_delete(socket, "todos-#{list_id}", todo_form)
+  def mount(_params, _session, socket) do
+    lists = Todos.active_lists(socket.assigns.scope, 10)
+    {:ok, stream(socket, :lists, lists)}
   end
 end

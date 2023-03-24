@@ -6,7 +6,7 @@ defmodule FormsWeb.ListLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, stream(socket, :lists, Todos.list_lists(socket.assigns.scope, 100))}
+    {:ok, stream(socket, :lists, Todos.active_lists(socket.assigns.scope, 100))}
   end
 
   @impl true
@@ -17,7 +17,7 @@ defmodule FormsWeb.ListLive.Index do
   defp apply_action(socket, :edit, %{"id" => id}) do
     socket
     |> assign(:page_title, "Edit List")
-    |> assign(:list, Todos.get_list!(id))
+    |> assign(:list, Todos.get_list!(socket.assigns.scope, id))
   end
 
   defp apply_action(socket, :new, _params) do
@@ -39,7 +39,7 @@ defmodule FormsWeb.ListLive.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    list = Todos.get_list!(id)
+    list = Todos.get_list!(socket.assigns.scope, id)
     {:ok, _} = Todos.delete_list(socket.assigns.scope, list)
 
     {:noreply, stream_delete(socket, :lists, list)}

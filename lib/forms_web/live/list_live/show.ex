@@ -13,7 +13,7 @@ defmodule FormsWeb.ListLive.Show do
     {:noreply,
      socket
      |> assign(:page_title, page_title(socket.assigns.live_action))
-     |> assign(:list, Todos.get_list!(id))}
+     |> assign(:list, Todos.get_list!(socket.assigns.scope, id))}
   end
 
   defp page_title(:show), do: "Show List"

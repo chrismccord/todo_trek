@@ -8,7 +8,9 @@ defmodule Forms.Todos do
 
   alias Forms.Todos.{List, Todo}
 
-  def change_position(%Scope{} = _scope, %Todo{} = todo, new_index) do
+  @max_todos 1000
+
+  def update_todo_position(%Scope{} = _scope, %Todo{} = todo, new_index) do
     old_index = todo.position
 
     multi =
@@ -40,10 +42,15 @@ defmodule Forms.Todos do
           update: [set: [position: ^new_index]]
         )
       end)
+
+    case Repo.transaction(multi) do
+      {:ok, _} -> :ok
+      {:error, _failed_op, failed_val, _changes_so_far} -> {:error, failed_val}
+    end
   end
 
-  def change_todo(%Todo{} = todo, attrs \\ %{}) do
-    Todo.changeset(todo, attrs)
+  def change_todo(todo_or_changeset, attrs \\ %{}) do
+    Todo.changeset(todo_or_changeset, attrs)
   end
 
   def delete_todo(%Scope{} = _scope, %Todo{} = todo) do
@@ -55,14 +62,14 @@ defmodule Forms.Todos do
       from(t in Todo,
         where: t.user_id == ^scope.current_user.id,
         limit: ^limit,
-        order_by: [asc: :inserted_at]
+        order_by: [asc: :position]
       )
     )
   end
 
-  def get_todo!(id) do
-    Todo
-    |> Repo.get!(id)
+  def get_todo!(%Scope{} = scope, id) do
+    from(t in Todo, where: t.id == ^id and t.user_id == ^scope.current_user.id)
+    |> Repo.one!()
     |> Repo.preload(:list)
   end
 
@@ -88,23 +95,30 @@ defmodule Forms.Todos do
     |> Repo.transaction()
     |> case do
       {:ok, %{todo: todo}} -> {:ok, todo}
-      {:error, _failed_operation, failed_value, _changes_so_far} -> {:error, failed_value}
+      {:error, :todo, changeset, _changes_so_far} -> {:error, changeset}
     end
   end
 
   @doc """
-  Returns the list of lists.
+  Returns the active lists.
 
   ## Examples
 
-      iex> list_lists()
+      iex> active_lists()
       [%List{}, ...]
 
   """
-  def list_lists(%Scope{} = scope, limit) do
+  def active_lists(%Scope{} = scope, limit) do
     from(l in List, where: l.user_id == ^scope.current_user.id, limit: ^limit)
     |> Repo.all()
-    |> Repo.preload([:todos])
+    |> Repo.preload(
+      todos:
+        from(t in Todo,
+          where: t.user_id == ^scope.current_user.id,
+          limit: @max_todos,
+          order_by: [asc: t.position]
+        )
+    )
   end
 
   @doc """
@@ -121,9 +135,8 @@ defmodule Forms.Todos do
       ** (Ecto.NoResultsError)
 
   """
-  def get_list!(id) do
-    List
-    |> Repo.get!(id)
+  def get_list!(%Scope{} = scope, id) do
+    Repo.one!(from(l in List, where: l.user_id == ^scope.current_user.id, where: l.id == ^id))
     |> preload()
   end
 
