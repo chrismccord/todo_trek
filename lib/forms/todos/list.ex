@@ -18,7 +18,6 @@ defmodule Forms.Todos.List do
 
     list
     |> cast(attrs, [:title])
-    |> cast_assoc(:todos, with: &Forms.Todos.Todo.changeset/2, on_replace: :delete)
     |> validate_required([:title])
   end
 end

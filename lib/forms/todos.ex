@@ -4,13 +4,17 @@ defmodule Forms.Todos do
   """
 
   import Ecto.Query, warn: false
-  alias Forms.{Repo, Scope}
+  alias Forms.{Repo, Scope, Events}
 
   alias Forms.Todos.{List, Todo}
 
   @max_todos 1000
 
-  def update_todo_position(%Scope{} = _scope, %Todo{} = todo, new_index) do
+  def subscribe(%Scope{} = scope) do
+    Phoenix.PubSub.subscribe(Forms.PubSub, topic(scope))
+  end
+
+  def update_todo_position(%Scope{} = scope, %Todo{} = todo, new_index) do
     old_index = todo.position
 
     multi =
@@ -44,8 +48,13 @@ defmodule Forms.Todos do
       end)
 
     case Repo.transaction(multi) do
-      {:ok, _} -> :ok
-      {:error, _failed_op, failed_val, _changes_so_far} -> {:error, failed_val}
+      {:ok, _} ->
+        new_todo = %Todo{todo | position: new_index}
+        broadcast(scope, %Events.TodoRepositioned{todo: new_todo})
+        :ok
+
+      {:error, _failed_op, failed_val, _changes_so_far} ->
+        {:error, failed_val}
     end
   end
 
@@ -53,8 +62,15 @@ defmodule Forms.Todos do
     Todo.changeset(todo_or_changeset, attrs)
   end
 
-  def delete_todo(%Scope{} = _scope, %Todo{} = todo) do
-    Repo.delete(todo)
+  def delete_todo(%Scope{} = scope, %Todo{} = todo) do
+    case Repo.delete(todo) do
+      {:ok, todo} ->
+        broadcast(scope, %Events.TodoDeleted{todo: todo})
+        {:ok, todo}
+
+      other ->
+        other
+    end
   end
 
   def list_todos(%Scope{} = scope, limit) do
@@ -67,16 +83,39 @@ defmodule Forms.Todos do
     )
   end
 
+  def toggle_complete(%Scope{} = scope, %Todo{} = todo) do
+    new_status =
+      case todo.status do
+        :completed -> :started
+        :started -> :completed
+      end
+
+    query = from(t in Todo, where: t.id == ^todo.id and t.user_id == ^scope.current_user.id)
+    {1, _} = Repo.update_all(query, set: [status: new_status])
+    todo = %Todo{todo | status: new_status}
+    broadcast(scope, %Events.TodoToggled{todo: todo})
+
+    {:ok, todo}
+  end
+
   def get_todo!(%Scope{} = scope, id) do
     from(t in Todo, where: t.id == ^id and t.user_id == ^scope.current_user.id)
     |> Repo.one!()
     |> Repo.preload(:list)
   end
 
-  def update_todo(%Scope{} = _scope, %Todo{} = todo, params) do
+  def update_todo(%Scope{} = scope, %Todo{} = todo, params) do
     todo
     |> Todo.changeset(params)
     |> Repo.update()
+    |> case do
+      {:ok, todo} ->
+        broadcast(scope, %Events.TodoUpdated{todo: todo})
+        {:ok, todo}
+
+      other ->
+        other
+    end
   end
 
   def create_todo(%Scope{} = scope, %List{} = list, params) do
@@ -94,8 +133,12 @@ defmodule Forms.Todos do
     |> Ecto.Multi.insert(:todo, Todo.changeset(todo, params))
     |> Repo.transaction()
     |> case do
-      {:ok, %{todo: todo}} -> {:ok, todo}
-      {:error, :todo, changeset, _changes_so_far} -> {:error, changeset}
+      {:ok, %{todo: todo}} ->
+        broadcast(scope, %Events.TodoAdded{todo: todo})
+        {:ok, todo}
+
+      {:error, :todo, changeset, _changes_so_far} ->
+        {:error, changeset}
     end
   end
 
@@ -109,7 +152,11 @@ defmodule Forms.Todos do
 
   """
   def active_lists(%Scope{} = scope, limit) do
-    from(l in List, where: l.user_id == ^scope.current_user.id, limit: ^limit)
+    from(l in List,
+      where: l.user_id == ^scope.current_user.id,
+      limit: ^limit,
+      order_by: [asc: :inserted_at]
+    )
     |> Repo.all()
     |> Repo.preload(
       todos:
@@ -158,6 +205,14 @@ defmodule Forms.Todos do
     %List{user_id: scope.current_user.id}
     |> List.changeset(attrs)
     |> Repo.insert()
+    |> case do
+      {:ok, list} ->
+        broadcast(scope, %Events.ListAdded{list: list})
+        {:ok, list}
+
+      other ->
+        other
+    end
   end
 
   @doc """
@@ -172,10 +227,18 @@ defmodule Forms.Todos do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_list(%Scope{} = _scope, %List{} = list, attrs) do
+  def update_list(%Scope{} = scope, %List{} = list, attrs) do
     list
     |> List.changeset(attrs)
     |> Repo.update()
+    |> case do
+      {:ok, list} ->
+        broadcast(scope, %Events.ListUpdated{list: list})
+        {:ok, list}
+
+      other ->
+        other
+    end
   end
 
   @doc """
@@ -218,4 +281,10 @@ defmodule Forms.Todos do
   defp lock_list(%Ecto.Multi{} = multi, %Todo{} = todo) do
     Repo.multi_transaction_lock(multi, :list, todo.list_id)
   end
+
+  defp broadcast(%Scope{} = scope, event) do
+    Phoenix.PubSub.broadcast(Forms.PubSub, topic(scope), {__MODULE__, event})
+  end
+
+  defp topic(%Scope{} = scope), do: "todos:#{scope.current_user.id}"
 end

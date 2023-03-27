@@ -7,11 +7,7 @@ defmodule FormsWeb.ListLive.FormComponent do
   def render(assigns) do
     ~H"""
     <div>
-      <.header>
-        <%= @title %>
-        <:subtitle>Use this form to manage list records in your database.</:subtitle>
-      </.header>
-
+      <.header><%= @title %></.header>
       <.simple_form
         for={@form}
         id="list-form"
@@ -19,29 +15,7 @@ defmodule FormsWeb.ListLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:title]} type="text" label="Title" />
-
-        <.label>
-          <input type="checkbox" name="list[todos][-1][_new]" class="hidden" />
-          prepend
-        </.label>
-
-        <.inputs_for :let={f_nested} field={@form[:todos]}>
-          <div>
-            <label>
-              <input type="checkbox" name={f_nested.name <> "[_delete]"} class="hidden" />
-              <.icon name="hero-x-mark" />
-            </label>
-            <.input type="text" field={f_nested[:title]} placeholder="Enter a title" />
-          </div>
-        </.inputs_for>
-
-        <.label>
-          <input type="checkbox" name="list[todos][9999][_new]" class="hidden" />
-          append
-        </.label>
-
-
+        <.input field={@form[:title]} type="text" />
 
         <:actions>
           <.button phx-disable-with="Saving...">Save List</.button>
@@ -75,11 +49,9 @@ defmodule FormsWeb.ListLive.FormComponent do
     save_list(socket, socket.assigns.action, list_params)
   end
 
-  defp save_list(socket, :edit, list_params) do
+  defp save_list(socket, :edit_list, list_params) do
     case Todos.update_list(socket.assigns.scope, socket.assigns.list, list_params) do
-      {:ok, list} ->
-        notify_parent({:saved, list})
-
+      {:ok, _list} ->
         {:noreply,
          socket
          |> put_flash(:info, "List updated successfully")
@@ -90,11 +62,9 @@ defmodule FormsWeb.ListLive.FormComponent do
     end
   end
 
-  defp save_list(socket, :new, list_params) do
+  defp save_list(socket, :new_list, list_params) do
     case Todos.create_list(socket.assigns.scope, list_params) do
-      {:ok, list} ->
-        notify_parent({:saved, list})
-
+      {:ok, _list} ->
         {:noreply,
          socket
          |> put_flash(:info, "List created successfully")
@@ -108,6 +78,4 @@ defmodule FormsWeb.ListLive.FormComponent do
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, :form, to_form(changeset))
   end
-
-  defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
 end

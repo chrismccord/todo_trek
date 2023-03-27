@@ -2,8 +2,6 @@ defmodule Forms.Todos.Todo do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @primary_key {:id, :binary_id, autogenerate: true}
-
   schema "todos" do
     field :status, Ecto.Enum, values: [:started, :completed]
     field :title, :string

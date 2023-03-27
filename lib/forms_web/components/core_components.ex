@@ -240,6 +240,8 @@ defmodule FormsWeb.CoreComponents do
   attr :name, :any
   attr :label, :string, default: nil
   attr :value, :any
+  attr :border, :boolean, default: true
+  attr :strike_through, :boolean, default: false
 
   attr :type, :string,
     default: "text",
@@ -344,9 +346,11 @@ defmodule FormsWeb.CoreComponents do
         id={@id}
         value={Phoenix.HTML.Form.normalize_value(@type, @value)}
         class={[
-          "mt-2 block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
-          "phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
-          "border-zinc-300 focus:border-zinc-400",
+          "block w-full rounded-lg text-zinc-900 focus:ring-0 sm:text-sm sm:leading-6",
+          @border && "phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400",
+          @border && "border-zinc-300 focus:border-zinc-400",
+          if(!@border, do: "border-0"),
+          if(@strike_through, do: "line-through"),
           @errors != [] && "border-rose-400 focus:border-rose-400"
         ]}
         {@rest}
@@ -555,7 +559,7 @@ defmodule FormsWeb.CoreComponents do
       <.icon name="hero-arrow-path" class="ml-1 w-3 h-3 animate-spin" />
   """
   attr :name, :string, required: true
-  attr :class, :string, default: nil
+  attr :class, :any, default: nil
 
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""

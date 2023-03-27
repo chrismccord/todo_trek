@@ -29,7 +29,7 @@
   </:action>
 </.table>
 
-<.modal :if={@live_action in [:new, :edit]} id="list-modal" show on_cancel={JS.patch(~p"/lists")}>
+<.modal :if={@live_action in [:new_list, :edit_list]} id="list-modal" show on_cancel={JS.patch(~p"/lists/#{@list}/edit")}>
   <.live_component
     scope={@scope}
     module={FormsWeb.ListLive.FormComponent}

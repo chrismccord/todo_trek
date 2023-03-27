@@ -21,13 +21,8 @@ defmodule FormsWeb.Router do
     pipe_through :browser
 
     live_session :default, on_mount: [{FormsWeb.UserAuth, :ensure_authenticated}, FormsWeb.Scope] do
-      live "/", HomeLive
-      live "/lists", ListLive.Index, :index
-      live "/lists/new", ListLive.Index, :new
-      live "/lists/:id/edit", ListLive.Index, :edit
-
-      live "/lists/:id", ListLive.Show, :show
-      live "/lists/:id/show/edit", ListLive.Show, :edit
+      live "/", HomeLive, :dashboard
+      live "/lists/:id/edit", HomeLive, :edit_list
     end
   end
 
