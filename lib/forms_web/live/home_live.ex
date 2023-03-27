@@ -39,16 +39,17 @@ defmodule FormsWeb.TodoListComponent do
                   name="hero-check-circle"
                   class={[
                     "w-7 h-7",
-                    if(form.data.status == :completed, do: "bg-green-600", else: "bg-gray-300")
+                    if(form[:status].value == :completed, do: "bg-green-600", else: "bg-gray-300")
                   ]}
                 />
               </button>
               <div class="flex-auto">
+                <input type="hidden" name={form[:status].name} value={form[:status].value} />
                 <.input
                   type="text"
                   field={form[:title]}
                   border={false}
-                  strike_through={form.data.status == :completed}
+                  strike_through={form[:status].value == :completed}
                   placeholder="New todo..."
                   phx-mounted={JS.focus()}
                   phx-keydown={!form.data.id && JS.push("discard", target: @myself)}
@@ -205,8 +206,8 @@ defmodule FormsWeb.HomeLive do
           <.header>
             <%= list.title %>
             <:actions>
-              <.link patch={~p"/lists/#{list}/edit"}>
-                <.icon name="hero-pencil-square" alt="Edit list"/>
+              <.link patch={~p"/lists/#{list}/edit"} alt="Edit list">
+                <.icon name="hero-pencil-square" />
               </.link>
             </:actions>
           </.header>
