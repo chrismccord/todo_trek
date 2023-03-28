@@ -4,6 +4,7 @@ defmodule Forms.Todos.List do
 
   schema "lists" do
     field :title, :string
+    field :position, :integer
 
     has_many :todos, Forms.Todos.Todo
     belongs_to :user, Forms.Accounts.User

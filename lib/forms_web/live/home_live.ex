@@ -11,7 +11,6 @@ defmodule FormsWeb.TodoListComponent do
         id={"todos-#{@list_id}"}
         phx-update="stream"
         phx-hook="Sortable"
-        data-drop="reposition"
         class="grid grid-cols-1 gap-2"
       >
         <div
@@ -188,6 +187,7 @@ defmodule FormsWeb.TodoListComponent do
     IO.inspect({:params, params})
     id = params["id"]
     todo = Todos.get_todo!(socket.assigns.scope, id)
+
     if todo.title == val do
       {:noreply, socket}
     else
@@ -214,37 +214,62 @@ defmodule FormsWeb.HomeLive do
 
   def render(assigns) do
     ~H"""
-    <div id="lists" phx-update="stream" phx-hook="Sortable" class="grid sm:grid-cols-1 md:grid-cols-3 gap-2">
-      <div :for={{id, list} <- @streams.lists} id={id} class="bg-gray-100 py-4 rounded-lg">
-        <div class="mx-auto max-w-7xl px-4 space-y-4">
-          <.header>
-            <%= list.title %>
-            <:actions>
-              <.link patch={~p"/lists/#{list}/edit"} alt="Edit list">
-                <.icon name="hero-pencil-square" />
-              </.link>
-            </:actions>
-          </.header>
-          <.live_component
-            id={list.id}
-            module={FormsWeb.TodoListComponent}
-            scope={@scope}
-            list={list}
-          />
+    <div class="space-y-5">
+      <.header>
+        Your Lists
+        <:actions>
+          <.link patch={~p"/lists/new"}>
+            <.button>New List</.button>
+          </.link>
+        </:actions>
+      </.header>
+      <div
+        id="lists"
+        phx-update="stream"
+        phx-hook="Sortable"
+        class="grid sm:grid-cols-1 md:grid-cols-3 gap-2"
+      >
+        <div
+          :for={{id, list} <- @streams.lists}
+          id={id}
+          data-id={list.id}
+          class="bg-gray-100 py-4 rounded-lg"
+        >
+          <div class="mx-auto max-w-7xl px-4 space-y-4">
+            <.header>
+              <%= list.title %>
+              <:actions>
+                <.link patch={~p"/lists/#{list}/edit"} alt="Edit list">
+                  <.icon name="hero-pencil-square" />
+                </.link>
+              </:actions>
+            </.header>
+            <.live_component
+              id={list.id}
+              module={FormsWeb.TodoListComponent}
+              scope={@scope}
+              list={list}
+            />
+          </div>
         </div>
       </div>
+      <.modal
+        :if={@live_action in [:new_list, :edit_list]}
+        id="list-modal"
+        show
+        on_cancel={JS.patch(~p"/")}
+      >
+        <.live_component
+          scope={@scope}
+          module={FormsWeb.ListLive.FormComponent}
+          id={@list.id || :new}
+          title={@page_title}
+          action={@live_action}
+          list={@list}
+          patch={~p"/"}
+        />
+      </.modal>
     </div>
-    <.modal :if={@live_action in [:edit_list]} id="list-modal" show on_cancel={JS.patch(~p"/")}>
-      <.live_component
-        scope={@scope}
-        module={FormsWeb.ListLive.FormComponent}
-        id={@list.id || :new}
-        title={@page_title}
-        action={@live_action}
-        list={@list}
-        patch={~p"/"}
-      />
-    </.modal>
     """
   end
 
@@ -289,6 +314,16 @@ defmodule FormsWeb.HomeLive do
 
   def handle_info({Forms.Todos, %_event{todo: todo} = event}, socket) do
     send_update(FormsWeb.TodoListComponent, id: todo.list_id, event: event)
+    {:noreply, socket}
+  end
+
+  def handle_info({Forms.Todos, %Events.ListRepositioned{list: list}}, socket) do
+    {:noreply, stream_insert(socket, :lists, list, at: list.position)}
+  end
+
+  def handle_event("reposition", %{"id" => id, "new" => new_idx, "old" => _old_idx}, socket) do
+    list = Todos.get_list!(socket.assigns.scope, id)
+    Todos.update_list_position(socket.assigns.scope, list, new_idx)
     {:noreply, socket}
   end
 end

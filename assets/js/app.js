@@ -31,7 +31,7 @@ Hooks.Sortable = {
       animation: 150,
       onEnd: e => {
         let params = {id: e.item.dataset.id, old: e.oldIndex, new: e.newIndex}
-        this.pushEventTo(this.el, this.el.dataset["drop"], params)
+        this.pushEventTo(this.el, this.el.dataset["drop"] || "reposition", params)
       }
     })
   }

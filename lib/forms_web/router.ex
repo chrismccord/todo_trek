@@ -22,6 +22,7 @@ defmodule FormsWeb.Router do
 
     live_session :default, on_mount: [{FormsWeb.UserAuth, :ensure_authenticated}, FormsWeb.Scope] do
       live "/", HomeLive, :dashboard
+      live "/lists/new", HomeLive, :new_list
       live "/lists/:id/edit", HomeLive, :edit_list
     end
   end
