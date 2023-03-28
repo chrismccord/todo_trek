@@ -3,7 +3,7 @@ defmodule Forms.Todos.Todo do
   import Ecto.Changeset
 
   schema "todos" do
-    field :status, Ecto.Enum, values: [:started, :completed]
+    field :status, Ecto.Enum, values: [:started, :completed], default: :started
     field :title, :string
     field :position, :integer
 
@@ -17,6 +17,6 @@ defmodule Forms.Todos.Todo do
   def changeset(todo, attrs) do
     todo
     |> cast(attrs, [:id, :title, :status])
-    |> validate_required([:title, :status])
+    |> validate_required([:title])
   end
 end

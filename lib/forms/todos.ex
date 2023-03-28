@@ -21,7 +21,7 @@ defmodule Forms.Todos do
       Ecto.Multi.new()
       |> lock_list(todo)
       |> Ecto.Multi.run(:index, fn repo, _changes ->
-        case repo.one(from(t in Todo, select: count(t.id))) do
+        case repo.one(from(t in Todo, where: t.list_id == ^todo.list_id, select: count(t.id))) do
           count when new_index < count -> {:ok, new_index}
           count -> {:ok, count - 1}
         end

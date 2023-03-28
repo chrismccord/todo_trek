@@ -13,9 +13,6 @@ defmodule Forms.Todos.List do
 
   @doc false
   def changeset(list, attrs) do
-    todos = for({key, todo} <- attrs["todos"] || %{}, !todo["_delete"], into: %{}, do: {key, todo})
-    attrs = Map.put(attrs, "todos", todos)
-
     list
     |> cast(attrs, [:title])
     |> validate_required([:title])

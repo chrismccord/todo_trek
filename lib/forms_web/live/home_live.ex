@@ -51,9 +51,11 @@ defmodule FormsWeb.TodoListComponent do
                   border={false}
                   strike_through={form[:status].value == :completed}
                   placeholder="New todo..."
-                  phx-mounted={JS.focus()}
+                  phx-mounted={!form.data.id && JS.focus()}
                   phx-keydown={!form.data.id && JS.push("discard", target: @myself)}
                   phx-key="escape"
+                  phx-blur={form.data.id && JS.dispatch("submit", to: "##{form.id}")}
+                  phx-target={@myself}
                 />
               </div>
               <button
@@ -147,6 +149,7 @@ defmodule FormsWeb.TodoListComponent do
          |> stream_insert(:todos, empty_form)}
 
       {:error, changeset} ->
+        dbg()
         {:noreply, stream_insert(socket, :todos, to_change_form(changeset, params, :insert))}
     end
   end
@@ -181,6 +184,17 @@ defmodule FormsWeb.TodoListComponent do
     {:noreply, stream_delete(socket, :todos, to_change_form(todo, %{}))}
   end
 
+  def handle_event("restore_if_unsaved", %{"value" => val} = params, socket) do
+    IO.inspect({:params, params})
+    id = params["id"]
+    todo = Todos.get_todo!(socket.assigns.scope, id)
+    if todo.title == val do
+      {:noreply, socket}
+    else
+      {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}))}
+    end
+  end
+
   defp to_change_form(todo_or_changeset, params, action \\ nil) do
     changeset =
       todo_or_changeset
@@ -200,7 +214,7 @@ defmodule FormsWeb.HomeLive do
 
   def render(assigns) do
     ~H"""
-    <div id="lists" phx-update="stream" class="grid sm:grid-cols-1 md:grid-cols-3 gap-2">
+    <div id="lists" phx-update="stream" phx-hook="Sortable" class="grid sm:grid-cols-1 md:grid-cols-3 gap-2">
       <div :for={{id, list} <- @streams.lists} id={id} class="bg-gray-100 py-4 rounded-lg">
         <div class="mx-auto max-w-7xl px-4 space-y-4">
           <.header>
