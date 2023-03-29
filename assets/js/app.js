@@ -27,11 +27,12 @@ let Hooks = {}
 
 Hooks.Sortable = {
   mounted(){
-    let opts = {}
     let group = this.el.dataset.group
     let sorter = new Sortable(this.el, {
       group: group ? {name: group, pull: true, put: true} : undefined,
       animation: 150,
+      dragClass: "drag-item",
+      ghostClass: "drag-ghost",
       onEnd: e => {
         let params = {old: e.oldIndex, new: e.newIndex, to: e.to.dataset, ...e.item.dataset}
         this.pushEventTo(this.el, this.el.dataset["drop"] || "reposition", params)
@@ -56,4 +57,3 @@ liveSocket.connect()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
-

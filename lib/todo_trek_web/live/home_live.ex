@@ -20,7 +20,12 @@ defmodule TodoTrekWeb.TodoListComponent do
           id={id}
           data-id={form.data.id}
           data-list_id={form.data.list_id}
-          class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400"
+          class="
+          relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-2 shadow-sm
+          focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400
+          drag-item:focus-within:ring-0 drag-item:focus-within:ring-offset-0
+          drag-ghost:bg-zinc-300 drag-ghost:border-0 drag-ghost:ring-0
+          "
         >
           <.simple_form
             for={form}
@@ -28,11 +33,9 @@ defmodule TodoTrekWeb.TodoListComponent do
             phx-submit="save"
             phx-value-id={form.data.id}
             phx-target={@myself}
-            class="min-w-0 flex-1"
+            class="min-w-0 flex-1 drag-ghost:opacity-0"
           >
             <div class="flex">
-
-                <%= form.data.position %>
               <button
                 :if={form.data.id}
                 type="button"
@@ -232,7 +235,7 @@ defmodule TodoTrekWeb.HomeLive do
       <.header>
         Your Lists
         <:actions>
-          <.link patch={~p"/lists/new"}>
+          <.link patch={~p"/lists/new"} id="new-list">
             <.button>New List</.button>
           </.link>
         </:actions>
