@@ -16,7 +16,7 @@ defmodule Forms.Todos do
 
   def update_list_position(%Scope{} = scope, %List{} = list, new_index) do
     Ecto.Multi.new()
-    |> multi_reposition(list, {List, list.id}, new_index, user_id: scope.current_user.id)
+    |> multi_reposition(:new, list, list, new_index, user_id: scope.current_user.id)
     |> Repo.transaction()
     |> case do
       {:ok, _} ->
@@ -29,44 +29,46 @@ defmodule Forms.Todos do
     end
   end
 
-  def multi_reposition(%Ecto.Multi{} = multi, %type{} = resource, lock, new_index, restrict_where) do
-    old_index = resource.position
+  def multi_reposition(%Ecto.Multi{} = multi, name, %type{} = struct, lock, new_idx, where_query)
+      when is_integer(new_idx) or new_idx == :end do
+    old_index = struct.position
 
     multi
-    |> Repo.multi_transaction_lock(lock)
-    |> Ecto.Multi.run(:index, fn repo, _changes ->
-      case repo.one(from(t in type, where: ^restrict_where, select: count(t.id))) do
-        count when new_index < count -> {:ok, new_index}
+    |> Repo.multi_transaction_lock(name, lock)
+    |> Ecto.Multi.run({:index, name}, fn repo, _changes ->
+      case repo.one(from(t in type, where: ^where_query, select: count(t.id))) do
+        count when new_idx == :end -> {:ok, count - 1}
+        count when new_idx < count -> {:ok, new_idx}
         count -> {:ok, count - 1}
       end
     end)
-    |> multi_update_all(:dec_positions, fn %{index: new_index} ->
+    |> multi_update_all({:dec_positions, name}, fn %{{:index, ^name} => computed_index} ->
       from(t in type,
-        where: ^restrict_where,
-        where: t.id != ^resource.id,
-        where: t.position > ^old_index and t.position <= ^new_index,
+        where: ^where_query,
+        where: t.id != ^struct.id,
+        where: t.position > ^old_index and t.position <= ^computed_index,
         update: [inc: [position: -1]]
       )
     end)
-    |> multi_update_all(:inc_positions, fn %{index: new_index} ->
+    |> multi_update_all({:inc_positions, name}, fn %{{:index, ^name} => computed_index} ->
       from(t in type,
-        where: ^restrict_where,
-        where: t.id != ^resource.id,
-        where: t.position < ^old_index and t.position >= ^new_index,
+        where: ^where_query,
+        where: t.id != ^struct.id,
+        where: t.position < ^old_index and t.position >= ^computed_index,
         update: [inc: [position: 1]]
       )
     end)
-    |> multi_update_all(:position, fn %{index: new_index} ->
+    |> multi_update_all({:position, name}, fn %{{:index, ^name} => computed_index} ->
       from(t in type,
-        where: t.id == ^resource.id,
-        update: [set: [position: ^new_index]]
+        where: t.id == ^struct.id,
+        update: [set: [position: ^computed_index]]
       )
     end)
   end
 
   def update_todo_position(%Scope{} = scope, %Todo{} = todo, new_index) do
     Ecto.Multi.new()
-    |> multi_reposition(todo, {List, todo.list_id}, new_index, list_id: todo.list_id)
+    |> multi_reposition(:new, todo, {List, todo.list_id}, new_index, list_id: todo.list_id)
     |> Repo.transaction()
     |> case do
       {:ok, _} ->
@@ -81,6 +83,30 @@ defmodule Forms.Todos do
 
   def change_todo(todo_or_changeset, attrs \\ %{}) do
     Todo.changeset(todo_or_changeset, attrs)
+  end
+
+  def move_todo_to_list(%Scope{} = scope, %Todo{} = todo, %List{} = list, at_index) do
+    Ecto.Multi.new()
+    |> Repo.multi_transaction_lock(:move_lock, scope.current_user)
+    |> multi_reposition(:old, todo, {List, todo.list_id}, :end, list_id: todo.list_id)
+    |> multi_reposition(:new, todo, list, at_index, list_id: list.id)
+    |> multi_update_all(:move_to_list, fn _changes ->
+      from(t in Todo,
+        where: t.id == ^todo.id,
+        update: [set: [list_id: ^list.id]]
+      )
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _} ->
+        broadcast(scope, %Events.TodoDeleted{todo: todo})
+        new_todo = %Todo{todo | list_id: list.id, position: at_index}
+        broadcast(scope, %Events.TodoRepositioned{todo: new_todo})
+        :ok
+
+      {:error, _failed_op, failed_val, _changes_so_far} ->
+        {:error, failed_val}
+    end
   end
 
   def delete_todo(%Scope{} = scope, %Todo{} = todo) do
@@ -150,7 +176,7 @@ defmodule Forms.Todos do
     }
 
     Ecto.Multi.new()
-    |> Repo.multi_transaction_lock({List, list.id})
+    |> Repo.multi_transaction_lock(:list, list)
     |> Ecto.Multi.insert(:todo, Todo.changeset(todo, params))
     |> Repo.transaction()
     |> case do
@@ -224,9 +250,11 @@ defmodule Forms.Todos do
   """
   def create_list(%Scope{} = scope, attrs \\ %{}) do
     Ecto.Multi.new()
-    |> Repo.multi_transaction_lock({Forms.Accounts.User, scope.current_user.id})
+    |> Repo.multi_transaction_lock(:user, scope.current_user)
     |> Ecto.Multi.run(:position, fn repo, _changes ->
-      position = repo.one(from l in List, where: l.user_id == ^scope.current_user.id, select: count(l.id))
+      position =
+        repo.one(from l in List, where: l.user_id == ^scope.current_user.id, select: count(l.id))
+
       {:ok, position}
     end)
     |> Ecto.Multi.insert(:list, fn %{position: position} ->
@@ -238,7 +266,6 @@ defmodule Forms.Todos do
         list = Repo.preload(list, :todos)
         broadcast(scope, %Events.ListAdded{list: list})
         {:ok, list}
-
 
       {:error, _failed_op, failed_val, _changes_so_far} ->
         {:error, failed_val}

@@ -23,6 +23,10 @@ defmodule Forms.Events do
     defstruct todo: nil
   end
 
+  defmodule TodoMoved do
+    defstruct todo: nil, from_list_id: nil, to_list_id: nil
+  end
+
   defmodule ListRepositioned do
     defstruct list: nil
   end

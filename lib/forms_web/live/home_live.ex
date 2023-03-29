@@ -12,11 +12,14 @@ defmodule FormsWeb.TodoListComponent do
         phx-update="stream"
         phx-hook="Sortable"
         class="grid grid-cols-1 gap-2"
+        data-group="todos"
+        data-list_id={@list_id}
       >
         <div
           :for={{id, form} <- @streams.todos}
           id={id}
           data-id={form.data.id}
+          data-list_id={form.data.list_id}
           class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 hover:border-gray-400"
         >
           <.simple_form
@@ -98,6 +101,7 @@ defmodule FormsWeb.TodoListComponent do
   end
 
   def update(%{event: %Events.TodoDeleted{todo: todo}}, socket) do
+    IO.inspect({socket.assigns.list_id, :deleted})
     {:ok, stream_delete(socket, :todos, to_change_form(todo, %{}))}
   end
 
@@ -172,10 +176,19 @@ defmodule FormsWeb.TodoListComponent do
     {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}), at: at)}
   end
 
-  def handle_event("reposition", %{"id" => id, "new" => new_idx, "old" => _old_idx}, socket) do
-    todo = Todos.get_todo!(socket.assigns.scope, id)
-    Todos.update_todo_position(socket.assigns.scope, todo, new_idx)
-    {:noreply, socket}
+  def handle_event("reposition", %{"id" => id, "new" => new_idx, "old" => _} = params, socket) do
+    case params do
+      %{"list_id" => old_list_id, "to" => %{"list_id" => old_list_id}} ->
+        todo = Todos.get_todo!(socket.assigns.scope, id)
+        Todos.update_todo_position(socket.assigns.scope, todo, new_idx)
+        {:noreply, socket}
+
+      %{"list_id" => _old_list_id, "to" => %{"list_id" => new_list_id}} ->
+        todo = Todos.get_todo!(socket.assigns.scope, id)
+        list = Todos.get_list!(socket.assigns.scope, new_list_id)
+        Todos.move_todo_to_list(socket.assigns.scope, todo, list, new_idx)
+        {:noreply, socket}
+    end
   end
 
   def handle_event("discard", _params, socket) do

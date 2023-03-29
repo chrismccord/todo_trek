@@ -27,10 +27,13 @@ let Hooks = {}
 
 Hooks.Sortable = {
   mounted(){
+    let opts = {}
+    let group = this.el.dataset.group
     let sorter = new Sortable(this.el, {
+      group: group ? {name: group, pull: true, put: true} : undefined,
       animation: 150,
       onEnd: e => {
-        let params = {id: e.item.dataset.id, old: e.oldIndex, new: e.newIndex}
+        let params = {old: e.oldIndex, new: e.newIndex, to: e.to.dataset, ...e.item.dataset}
         this.pushEventTo(this.el, this.el.dataset["drop"] || "reposition", params)
       }
     })
