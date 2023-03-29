@@ -7,17 +7,17 @@
 # General application configuration
 import Config
 
-config :forms,
-  ecto_repos: [Forms.Repo]
+config :todo_trek,
+  ecto_repos: [TodoTrek.Repo]
 
 # Configures the endpoint
-config :forms, FormsWeb.Endpoint,
+config :todo_trek, TodoTrekWeb.Endpoint,
   url: [host: "localhost"],
   render_errors: [
-    formats: [html: FormsWeb.ErrorHTML, json: FormsWeb.ErrorJSON],
+    formats: [html: TodoTrekWeb.ErrorHTML, json: TodoTrekWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Forms.PubSub,
+  pubsub_server: TodoTrek.PubSub,
   live_view: [signing_salt: "U/OICCO5"]
 
 # Configures the mailer
@@ -27,7 +27,7 @@ config :forms, FormsWeb.Endpoint,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :forms, Forms.Mailer, adapter: Swoosh.Adapters.Local
+config :todo_trek, TodoTrek.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,

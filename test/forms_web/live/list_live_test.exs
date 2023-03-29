@@ -1,8 +1,8 @@
-defmodule FormsWeb.ListLiveTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.ListLiveTest do
+  use TodoTrekWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Forms.TodosFixtures
+  import TodoTrek.TodosFixtures
 
   @create_attrs %{title: "some title"}
   @update_attrs %{title: "some updated title"}

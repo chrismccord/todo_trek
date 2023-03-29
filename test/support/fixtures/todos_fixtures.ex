@@ -1,7 +1,7 @@
-defmodule Forms.TodosFixtures do
+defmodule TodoTrek.TodosFixtures do
   @moduledoc """
   This module defines test helpers for creating
-  entities via the `Forms.Todos` context.
+  entities via the `TodoTrek.Todos` context.
   """
 
   @doc """
@@ -13,7 +13,7 @@ defmodule Forms.TodosFixtures do
       |> Enum.into(%{
         title: "some title"
       })
-      |> Forms.Todos.create_list()
+      |> TodoTrek.Todos.create_list()
 
     list
   end

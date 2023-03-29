@@ -1,11 +1,11 @@
-defmodule FormsWeb.UserConfirmationLiveTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.UserConfirmationLiveTest do
+  use TodoTrekWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Forms.AccountsFixtures
+  import TodoTrek.AccountsFixtures
 
-  alias Forms.Accounts
-  alias Forms.Repo
+  alias TodoTrek.Accounts
+  alias TodoTrek.Repo
 
   setup do
     %{user: user_fixture()}

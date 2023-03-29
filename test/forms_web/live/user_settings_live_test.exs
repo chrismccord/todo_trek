@@ -1,9 +1,9 @@
-defmodule FormsWeb.UserSettingsLiveTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.UserSettingsLiveTest do
+  use TodoTrekWeb.ConnCase
 
-  alias Forms.Accounts
+  alias TodoTrek.Accounts
   import Phoenix.LiveViewTest
-  import Forms.AccountsFixtures
+  import TodoTrek.AccountsFixtures
 
   describe "Settings page" do
     test "renders settings page", %{conn: conn} do

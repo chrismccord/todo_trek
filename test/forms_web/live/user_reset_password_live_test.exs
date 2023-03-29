@@ -1,10 +1,10 @@
-defmodule FormsWeb.UserResetPasswordLiveTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.UserResetPasswordLiveTest do
+  use TodoTrekWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Forms.AccountsFixtures
+  import TodoTrek.AccountsFixtures
 
-  alias Forms.Accounts
+  alias TodoTrek.Accounts
 
   setup do
     user = user_fixture()

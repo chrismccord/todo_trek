@@ -1,12 +1,12 @@
-defmodule Forms.TodosTest do
-  use Forms.DataCase
+defmodule TodoTrek.TodosTest do
+  use TodoTrek.DataCase
 
-  alias Forms.Todos
+  alias TodoTrek.Todos
 
   describe "lists" do
-    alias Forms.Todos.List
+    alias TodoTrek.Todos.List
 
-    import Forms.TodosFixtures
+    import TodoTrek.TodosFixtures
 
     @invalid_attrs %{title: nil}
 

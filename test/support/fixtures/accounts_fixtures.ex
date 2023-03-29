@@ -1,7 +1,7 @@
-defmodule Forms.AccountsFixtures do
+defmodule TodoTrek.AccountsFixtures do
   @moduledoc """
   This module defines test helpers for creating
-  entities via the `Forms.Accounts` context.
+  entities via the `TodoTrek.Accounts` context.
   """
 
   def unique_user_email, do: "user#{System.unique_integer()}@example.com"
@@ -18,7 +18,7 @@ defmodule Forms.AccountsFixtures do
     {:ok, user} =
       attrs
       |> valid_user_attributes()
-      |> Forms.Accounts.register_user()
+      |> TodoTrek.Accounts.register_user()
 
     user
   end

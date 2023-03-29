@@ -1,8 +1,8 @@
-defmodule FormsWeb.UserLoginLiveTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.UserLoginLiveTest do
+  use TodoTrekWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Forms.AccountsFixtures
+  import TodoTrek.AccountsFixtures
 
   describe "Log in page" do
     test "renders log in page", %{conn: conn} do

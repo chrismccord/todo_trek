@@ -1,8 +1,8 @@
-defmodule FormsWeb.UserRegistrationLiveTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.UserRegistrationLiveTest do
+  use TodoTrekWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Forms.AccountsFixtures
+  import TodoTrek.AccountsFixtures
 
   describe "Registration page" do
     test "renders registration page", %{conn: conn} do

@@ -1,7 +1,7 @@
-defmodule FormsWeb.UserSessionControllerTest do
-  use FormsWeb.ConnCase, async: true
+defmodule TodoTrekWeb.UserSessionControllerTest do
+  use TodoTrekWeb.ConnCase, async: true
 
-  import Forms.AccountsFixtures
+  import TodoTrek.AccountsFixtures
 
   setup do
     %{user: user_fixture()}

@@ -1,5 +1,5 @@
-defmodule FormsWeb.PageControllerTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.PageControllerTest do
+  use TodoTrekWeb.ConnCase
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")

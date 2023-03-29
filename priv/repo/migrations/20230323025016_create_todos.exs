@@ -1,4 +1,4 @@
-defmodule Forms.Repo.Migrations.CreateTodos do
+defmodule TodoTrek.Repo.Migrations.CreateTodos do
   use Ecto.Migration
 
   def change do

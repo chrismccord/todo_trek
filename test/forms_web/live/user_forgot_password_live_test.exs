@@ -1,11 +1,11 @@
-defmodule FormsWeb.UserForgotPasswordLiveTest do
-  use FormsWeb.ConnCase
+defmodule TodoTrekWeb.UserForgotPasswordLiveTest do
+  use TodoTrekWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Forms.AccountsFixtures
+  import TodoTrek.AccountsFixtures
 
-  alias Forms.Accounts
-  alias Forms.Repo
+  alias TodoTrek.Accounts
+  alias TodoTrek.Repo
 
   describe "Forgot password page" do
     test "renders email page", %{conn: conn} do
