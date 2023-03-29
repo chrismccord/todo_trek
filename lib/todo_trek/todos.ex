@@ -66,6 +66,16 @@ defmodule TodoTrek.Todos do
     end)
   end
 
+  def multi_decrement_positions(%Ecto.Multi{} = multi, name, %type{} = struct, where_query) do
+    multi_update_all(multi, name, fn _ ->
+      from(t in type,
+        where: ^where_query,
+        where: t.position > subquery(from og in type, where: og.id == ^struct.id, select: og.position),
+        update: [inc: [position: -1]]
+      )
+    end)
+  end
+
   def update_todo_position(%Scope{} = scope, %Todo{} = todo, new_index) do
     Ecto.Multi.new()
     |> multi_reposition(:new, todo, {List, todo.list_id}, new_index, list_id: todo.list_id)
@@ -106,7 +116,6 @@ defmodule TodoTrek.Todos do
         update: [set: [list_id: ^list.id, position: ^pos_at_end]]
       )
     end)
-    # when I bet back, we need to bump %Todo{} to have the new "old" position from post_at_end somehow
     |> multi_reposition(:new, todo, list, at_index, list_id: list.id)
     |> Repo.transaction()
     |> case do
@@ -124,14 +133,8 @@ defmodule TodoTrek.Todos do
   def delete_todo(%Scope{} = scope, %Todo{} = todo) do
     Ecto.Multi.new()
     |> Repo.multi_transaction_lock(:list, {List, todo.list_id})
+    |> multi_decrement_positions(:dec_rest_in_list, todo, list_id: todo.list_id)
     |> Ecto.Multi.delete(:todo, todo)
-    |> multi_update_all(:dec_positions, fn _ ->
-      from(t in Todo,
-        where: t.list_id == ^todo.list_id,
-        where: t.position > ^todo.position,
-        update: [inc: [position: -1]]
-      )
-    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{todo: todo}} ->
@@ -340,14 +343,8 @@ defmodule TodoTrek.Todos do
   def delete_list(%Scope{} = scope, %List{} = list) do
     Ecto.Multi.new()
     |> Repo.multi_transaction_lock(:user, scope.current_user)
+    |> multi_decrement_positions(:dec_rest_in_parent, list, user_id: list.user_id)
     |> Ecto.Multi.delete(:list, list)
-    |> multi_update_all(:dec_positions, fn _ ->
-      from(l in List,
-        where: l.user_id == ^list.user_id,
-        where: l.position > ^list.position,
-        update: [inc: [position: -1]]
-      )
-    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{list: list}} ->
