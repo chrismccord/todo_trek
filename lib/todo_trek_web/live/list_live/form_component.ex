@@ -15,10 +15,36 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:title]} type="text" />
+        <div class="space-y-2">
+          <.input field={@form[:title]} type="text" />
+
+          <.insert_inputs_for field={@form[:email_notifications]} at={0}>
+            Prepend
+          </.insert_inputs_for>
+
+          <.inputs_for field={@form[:email_notifications]}></.inputs_for>
+          <div id="notifications" phx-hook="SortableInputsFor" class="space-y-2">
+            <.inputs_for :let={{f_nested, idx}} field={@form[:email_notifications]} skip_hidden sort_param="email_order">
+              <div class="flex space-x-2">
+                <.delete_inputs_for field={f_nested}>
+                  <.icon name="hero-x-mark" class="w-6 h-6 relative top-2" />
+                </.delete_inputs_for>
+                <.input type="text" field={f_nested[:email]} placeholder="email" />
+                <.input type="text" field={f_nested[:name]} placeholderj="name" />
+                <input hidden name={"#{@form[:email_notifications_order].name}[]"} value={f_nested[:]} />
+              </div>
+            </.inputs_for>
+          </div>
+
+          <.insert_inputs_for field={@form[:email_notifications]}>
+            Append
+          </.insert_inputs_for>
+        </div>
 
         <:actions>
-          <.button phx-disable-with="Saving...">Save List</.button>
+          <.button phx-disable-with="Saving..." phx-click={hide_modal("list-modal")}>
+            Save List
+          </.button>
         </:actions>
       </.simple_form>
     </div>
@@ -76,6 +102,12 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    assign(socket, :form, to_form(changeset))
+    if changeset.data.email_notifications == [] do
+      email = %Todos.List.EmailNotification{}
+      changeset = Ecto.Changeset.put_change(changeset, :email_notifications, [email])
+      assign(socket, :form, to_form(changeset))
+    else
+      assign(socket, :form, to_form(changeset))
+    end
   end
 end

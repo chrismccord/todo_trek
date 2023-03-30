@@ -58,7 +58,7 @@ config :todo_trek, TodoTrekWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/forms_web/(controllers|live|components)/.*(ex|heex)$"
+      ~r"lib/todo_trek_web/(controllers|live|components)/.*(ex|heex)$"
     ]
   ]
 

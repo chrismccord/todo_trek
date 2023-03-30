@@ -33,6 +33,7 @@ Hooks.Sortable = {
       animation: 150,
       dragClass: "drag-item",
       ghostClass: "drag-ghost",
+      forceFallback: true,
       onEnd: e => {
         let params = {old: e.oldIndex, new: e.newIndex, to: e.to.dataset, ...e.item.dataset}
         this.pushEventTo(this.el, this.el.dataset["drop"] || "reposition", params)
@@ -40,6 +41,30 @@ Hooks.Sortable = {
     })
   }
 }
+
+Hooks.SortableInputsFor = {
+  mounted(){
+    let group = this.el.dataset.group
+    let sorter = new Sortable(this.el, {
+      group: group ? {name: group, pull: true, put: true} : undefined,
+      animation: 150,
+      dragClass: "drag-item",
+      ghostClass: "drag-ghost",
+      forceFallback: true,
+      onEnd: e => {
+        let respositionInputs = document.createElement("div")
+        respositionInputs.style.display = "none"
+        respositionInputs.innerHTML = `
+        <input type="hidden" name="list[reposition][old]" value="${e.oldIndex}" />
+        <input type="hidden" name="list[reposition][new]" value="${e.newIndex}" />
+        `
+        this.el.appendChild(respositionInputs)
+        respositionInputs.firstElementChild.dispatchEvent(new Event("input", {bubbles: true}))
+      }
+    })
+  }
+}
+
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}, hooks: Hooks})

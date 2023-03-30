@@ -6,7 +6,7 @@ defmodule TodoTrekWeb.Endpoint do
   # Set :encryption_salt if you would also like to encrypt it.
   @session_options [
     store: :cookie,
-    key: "_forms_key",
+    key: "_todo_trek_key",
     signing_salt: "hEdw8mJ0",
     same_site: "Lax"
   ]
