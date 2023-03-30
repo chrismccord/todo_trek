@@ -3,7 +3,7 @@ defmodule TodoTrek.Repo.Migrations.AddEmailNotificationsToLists do
 
   def change do
     alter table(:lists) do
-      add :email_notifications, {:array, :map}, null: false, default: []
+      add :notifications, {:array, :map}, null: false, default: []
     end
   end
 end

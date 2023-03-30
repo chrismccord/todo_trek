@@ -18,27 +18,30 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
         <div class="space-y-2">
           <.input field={@form[:title]} type="text" />
 
-          <.insert_inputs_for field={@form[:email_notifications]} at={0}>
-            Prepend
-          </.insert_inputs_for>
+          <label>
+            <input type="checkbox" name="list[notifications_order][]" />
+            prepend
+          </label>
 
-          <.inputs_for field={@form[:email_notifications]}></.inputs_for>
           <div id="notifications" phx-hook="SortableInputsFor" class="space-y-2">
-            <.inputs_for :let={{f_nested, idx}} field={@form[:email_notifications]} skip_hidden sort_param="email_order">
+            <.inputs_for :let={f_nested} field={@form[:notifications]}>
               <div class="flex space-x-2">
-                <.delete_inputs_for field={f_nested}>
+                <input type="hidden" name="list[notifications_order][]" value={f_nested.index} />
+
+                <label>
+                  <input type="checkbox" name="list[notifications_delete][]" value={f_nested.index} class="hidden" />
                   <.icon name="hero-x-mark" class="w-6 h-6 relative top-2" />
-                </.delete_inputs_for>
+                </label>
                 <.input type="text" field={f_nested[:email]} placeholder="email" />
-                <.input type="text" field={f_nested[:name]} placeholderj="name" />
-                <input hidden name={"#{@form[:email_notifications_order].name}[]"} value={f_nested[:]} />
+                <.input type="text" field={f_nested[:name]} placeholder="name" />
               </div>
             </.inputs_for>
           </div>
 
-          <.insert_inputs_for field={@form[:email_notifications]}>
+          <label>
+            <input type="checkbox" name="list[notifications_order][]" value="new" />
             Append
-          </.insert_inputs_for>
+          </label>
         </div>
 
         <:actions>
@@ -67,6 +70,7 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
       socket.assigns.list
       |> Todos.change_list(list_params)
       |> Map.put(:action, :validate)
+      |> IO.inspect()
 
     {:noreply, assign_form(socket, changeset)}
   end
@@ -102,9 +106,9 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    if changeset.data.email_notifications == [] do
+    if Ecto.Changeset.get_field(changeset, :notifications) == [] do
       email = %Todos.List.EmailNotification{}
-      changeset = Ecto.Changeset.put_change(changeset, :email_notifications, [email])
+      changeset = Ecto.Changeset.put_change(changeset, :notifications, [email])
       assign(socket, :form, to_form(changeset))
     else
       assign(socket, :form, to_form(changeset))

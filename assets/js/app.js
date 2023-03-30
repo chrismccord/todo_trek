@@ -52,14 +52,16 @@ Hooks.SortableInputsFor = {
       ghostClass: "drag-ghost",
       forceFallback: true,
       onEnd: e => {
-        let respositionInputs = document.createElement("div")
-        respositionInputs.style.display = "none"
-        respositionInputs.innerHTML = `
-        <input type="hidden" name="list[reposition][old]" value="${e.oldIndex}" />
-        <input type="hidden" name="list[reposition][new]" value="${e.newIndex}" />
-        `
-        this.el.appendChild(respositionInputs)
-        respositionInputs.firstElementChild.dispatchEvent(new Event("input", {bubbles: true}))
+        // let respositionInputs = document.createElement("div")
+        // respositionInputs.style.display = "none"
+        // respositionInputs.innerHTML = `
+        // <input type="hidden" name="list[reposition][old]" value="${e.oldIndex}" />
+        // <input type="hidden" name="list[reposition][new]" value="${e.newIndex}" />
+        // `
+        // this.el.appendChild(respositionInputs)
+        // respositionInputs.firstElementChild.dispatchEvent(new Event("input", {bubbles: true}))
+
+        this.el.closest("form").querySelector("input").dispatchEvent(new Event("input", {bubbles: true}))
       }
     })
   }

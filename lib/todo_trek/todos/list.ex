@@ -9,7 +9,7 @@ defmodule TodoTrek.Todos.List do
     has_many :todos, TodoTrek.Todos.Todo
     belongs_to :user, TodoTrek.Accounts.User
 
-    embeds_many :email_notifications, EmailNotification, on_replace: :delete do
+    embeds_many :notifications, EmailNotification, on_replace: :delete do
       field :email, :string
       field :name, :string
     end
@@ -21,52 +21,26 @@ defmodule TodoTrek.Todos.List do
   def changeset(list, attrs) do
     attrs =
       case attrs do
-        %{"email_notifications" => emails} ->
-          email_notifications =
-            emails
-            |> Enum.filter(fn
-              {_key, %{"_delete" => _}} -> false
-              {_key, _} -> true
-            end)
-            |> Enum.map(fn
-              {"@", "0"} -> {"-1", %{}}
-              {"@", "-1"} -> {"9999", %{}}
-              {"@", idx} -> {idx, %{}}
-              {key, email} -> {key, email}
-            end)
-            |> Enum.sort_by(fn {idx, _email} ->
-              {int, ""} = Integer.parse(idx)
-              int
-            end)
-            |> Enum.with_index()
-            |> Enum.into(%{}, fn {{_key, email}, idx} -> {to_string(idx), email} end)
-            |> IO.inspect()
+        %{"notifications" => notifications} ->
+          deletes = attrs["notifications_delete"] || []
+          filtered_notifications = Map.drop(notifications, deletes)
 
-          Map.put(attrs, "email_notifications", email_notifications)
+          sorted_notifications =
+            case attrs do
+              %{"notifications_order" => order} ->
+                Enum.reduce(order, %{}, fn idx_str, acc ->
+                  cond do
+                    idx_str in deletes -> acc
+                    data = filtered_notifications[idx_str] -> Map.put(acc, map_size(acc), data)
+                    true -> Map.put(acc, map_size(acc), %{})
+                  end
+                end)
 
-        %{} ->
-          attrs
-      end
+              %{} ->
+                filtered_notifications
+            end
 
-    attrs =
-      case attrs do
-        %{"email_notifications" => emails, "reposition" => %{"new" => new_idx, "old" => old_idx}} ->
-          {new_idx, ""} = Integer.parse(new_idx)
-          {old_idx, ""} = Integer.parse(old_idx)
-
-          emails =
-            Enum.into(emails, %{}, fn {idx, params} ->
-              {idx, ""} = Integer.parse(idx)
-
-              cond do
-                idx == old_idx -> {to_string(new_idx), params}
-                idx > old_idx and idx <= new_idx -> {to_string(idx - 1), params}
-                idx < old_idx and idx >= new_idx -> {to_string(idx + 1), params}
-                true -> {to_string(idx), params}
-              end
-            end)
-
-          Map.put(attrs, "email_notifications", emails)
+          Map.put(attrs, "notifications", sorted_notifications)
 
         %{} ->
           attrs
@@ -74,7 +48,11 @@ defmodule TodoTrek.Todos.List do
 
     list
     |> cast(attrs, [:title])
-    |> cast_embed(:email_notifications, with: &email_changeset/2)
+    |> cast_embed(:notifications,
+      with: &email_changeset/2,
+      sort_param: "notifications_order",
+      delete_param: "notifications_delete"
+    )
     |> validate_required([:title])
   end
 
