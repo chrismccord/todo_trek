@@ -19,8 +19,7 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
           <.input field={@form[:title]} type="text" />
 
           <label>
-            <input type="checkbox" name="list[notifications_order][]" />
-            prepend
+            <input type="checkbox" name="list[notifications_order][]" /> prepend
           </label>
 
           <div id="notifications" phx-hook="SortableInputsFor" class="space-y-2">
@@ -29,7 +28,12 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
                 <input type="hidden" name="list[notifications_order][]" value={f_nested.index} />
 
                 <label>
-                  <input type="checkbox" name="list[notifications_delete][]" value={f_nested.index} class="hidden" />
+                  <input
+                    type="checkbox"
+                    name="list[notifications_delete][]"
+                    value={f_nested.index}
+                    class="hidden"
+                  />
                   <.icon name="hero-x-mark" class="w-6 h-6 relative top-2" />
                 </label>
                 <.input type="text" field={f_nested[:email]} placeholder="email" />
@@ -39,8 +43,7 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
           </div>
 
           <label>
-            <input type="checkbox" name="list[notifications_order][]" value="new" />
-            Append
+            <input type="checkbox" name="list[notifications_order][]" value="new" /> Append
           </label>
         </div>
 
