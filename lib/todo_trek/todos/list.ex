@@ -4,6 +4,7 @@ defmodule TodoTrek.Todos.List do
 
   schema "lists" do
     field :title, :string
+    field :whatever, :string, virtual: true
     field :position, :integer
 
     has_many :todos, TodoTrek.Todos.Todo
@@ -47,13 +48,13 @@ defmodule TodoTrek.Todos.List do
       end
 
     list
-    |> cast(attrs, [:title])
+    |> cast(attrs, [:title, :whatever])
     |> cast_embed(:notifications,
       with: &email_changeset/2,
       sort_param: "notifications_order",
       delete_param: "notifications_delete"
     )
-    |> validate_required([:title])
+    |> validate_required([:title, :whatever])
   end
 
   defp email_changeset(email, attrs) do

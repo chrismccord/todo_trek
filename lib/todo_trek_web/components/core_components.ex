@@ -710,4 +710,102 @@ defmodule TodoTrekWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  attr :field, Phoenix.HTML.FormField,
+    required: true,
+    doc: "A %Phoenix.HTML.Form{}/field name tuple, for example: {@form[:email]}."
+
+  attr :id, :string,
+    doc: """
+    The id to be used in the form, defaults to the concatenation of the given
+    field to the parent form id.
+    """
+
+  attr :as, :atom,
+    doc: """
+    The name to be used in the form, defaults to the concatenation of the given
+    field to the parent form name.
+    """
+
+  attr :default, :any, doc: "The value to use if none is available."
+
+  attr :prepend, :list,
+    doc: """
+    The values to prepend when rendering. This only applies if the field value
+    is a list and no parameters were sent through the form.
+    """
+
+  attr :append, :list,
+    doc: """
+    The values to append when rendering. This only applies if the field value
+    is a list and no parameters were sent through the form.
+    """
+
+  attr :skip_hidden, :boolean,
+    default: false,
+    doc: """
+    Skip the automatic rendering of hidden fields to allow for more tight control
+    over the generated markup.
+    """
+
+  slot :inner_block, required: true, doc: "The content rendered for each nested form."
+
+  def my_inputs_for(assigns) do
+    %Phoenix.HTML.FormField{field: field_name, form: form} = assigns.field
+    options = assigns |> Map.take([:id, :as, :default, :append, :prepend]) |> Keyword.new()
+
+    options =
+      form.options
+      |> Keyword.take([:multipart])
+      |> Keyword.merge(options)
+
+    forms = form.impl.to_form(form.source, form, field_name, options)
+    seen_ids = for f <- forms, vid = f.params["_persistent_id"], into: %{}, do: {vid, true}
+
+    forms =
+      forms
+      |> Enum.with_index()
+      |> Enum.map(fn {%Phoenix.HTML.Form{params: params} = form, idx} ->
+        new_params = Map.put_new_lazy(params, "_persistent_id", fn -> next_id(idx, seen_ids) end)
+        %Phoenix.HTML.Form{form | id: new_params["_persistent_id"], params: new_params}
+      end)
+
+    assigns = assign(assigns, :forms, forms)
+
+    ~H"""
+    <%= for finner <- @forms do %>
+      <%= unless @skip_hidden do %>
+        <%= for {name, value_or_values} <- finner.hidden,
+                name = name_for_value_or_values(finner, name, value_or_values),
+                value <- List.wrap(value_or_values) do %>
+          <input type="hidden" name={name} value={value} />
+        <% end %>
+        <input
+          type="hidden"
+          name={finner.name <> "[_persistent_id]"}
+          value={finner[:_persistent_id].value}
+        />
+      <% end %>
+      <%= render_slot(@inner_block, finner) %>
+    <% end %>
+    """
+  end
+
+  defp next_id(idx, %{} = seen_ids) do
+    id_str = to_string(idx)
+
+    if Map.has_key?(seen_ids, id_str) do
+      next_id(idx + 1, seen_ids)
+    else
+      id_str
+    end
+  end
+
+  defp name_for_value_or_values(form, field, values) when is_list(values) do
+    Phoenix.HTML.Form.input_name(form, field) <> "[]"
+  end
+
+  defp name_for_value_or_values(form, field, _value) do
+    Phoenix.HTML.Form.input_name(form, field)
+  end
 end

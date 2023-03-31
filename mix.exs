@@ -34,8 +34,8 @@ defmodule TodoTrek.MixProject do
     [
       {:bcrypt_elixir, "~> 3.0"},
       {:phoenix, path: "~/oss/phoenix", override: true},
-      # {:phoenix_ecto, "~> 4.4"},
-      {:phoenix_ecto, path: "~/oss/phoenix_ecto", override: true},
+      {:phoenix_ecto, "~> 4.4"},
+      {:ecto, github: "elixir-ecto/ecto", branch: "jv-sort-delete-param", override: true},
       {:ecto_sql, "~> 3.6"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_html, "~> 3.3"},
