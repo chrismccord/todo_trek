@@ -4,7 +4,6 @@ defmodule TodoTrek.Todos.List do
 
   schema "lists" do
     field :title, :string
-    field :whatever, :string, virtual: true
     field :position, :integer
 
     has_many :todos, TodoTrek.Todos.Todo
@@ -20,41 +19,14 @@ defmodule TodoTrek.Todos.List do
 
   @doc false
   def changeset(list, attrs) do
-    attrs =
-      case attrs do
-        %{"notifications" => notifications} ->
-          deletes = attrs["notifications_delete"] || []
-          filtered_notifications = Map.drop(notifications, deletes)
-
-          sorted_notifications =
-            case attrs do
-              %{"notifications_order" => order} ->
-                Enum.reduce(order, %{}, fn idx_str, acc ->
-                  cond do
-                    idx_str in deletes -> acc
-                    data = filtered_notifications[idx_str] -> Map.put(acc, map_size(acc), data)
-                    true -> Map.put(acc, map_size(acc), %{})
-                  end
-                end)
-
-              %{} ->
-                filtered_notifications
-            end
-
-          Map.put(attrs, "notifications", sorted_notifications)
-
-        %{} ->
-          attrs
-      end
-
     list
-    |> cast(attrs, [:title, :whatever])
+    |> cast(attrs, [:title])
+    |> validate_required([:title])
     |> cast_embed(:notifications,
       with: &email_changeset/2,
-      sort_param: "notifications_order",
-      delete_param: "notifications_delete"
+      sort_param: :notifications_order,
+      drop_param: :notifications_delete
     )
-    |> validate_required([:title, :whatever])
   end
 
   defp email_changeset(email, attrs) do

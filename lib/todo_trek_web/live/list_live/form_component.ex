@@ -15,17 +15,16 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <div class="space-y-2">
+        <div class="space-y-4 mb-6">
           <.input field={@form[:title]} type="text" />
-          <.input field={@form[:whatever]} type="text" />
 
-          <label>
-            <input type="checkbox" name="list[notifications_order][]" /> prepend
+          <label class="block cursor-pointer">
+            <input type="checkbox" name="list[notifications_order][]" class="hidden" />
+            <.icon name="hero-plus-circle" /> prepend
           </label>
 
-          <.my_inputs_for field={@form[:notifications]}></.my_inputs_for>
           <div id="notifications" phx-hook="SortableInputsFor" class="space-y-2">
-            <.my_inputs_for :let={f_nested} skip_hidden field={@form[:notifications]}>
+            <.inputs_for :let={f_nested} field={@form[:notifications]}>
               <div class="flex space-x-2">
                 <input type="hidden" name="list[notifications_order][]" value={f_nested.index} />
                 <span data-handle><.icon name="hero-bars-3" class="w-6 h-6 relative top-2" /></span>
@@ -36,11 +35,12 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
                   <.icon name="hero-x-mark" class="w-6 h-6 relative top-2" />
                 </label>
               </div>
-            </.my_inputs_for>
+            </.inputs_for>
           </div>
 
-          <label>
-            <input type="checkbox" name="list[notifications_order][]" value="new" /> Append
+          <label class="block cursor-pointer">
+            <input type="checkbox" name="list[notifications_order][]" class="hidden" />
+            <.icon name="hero-plus-circle" /> append
           </label>
         </div>
 
