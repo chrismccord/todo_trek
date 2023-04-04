@@ -33,14 +33,15 @@ defmodule TodoTrek.MixProject do
   defp deps do
     [
       {:bcrypt_elixir, "~> 3.0"},
-      {:phoenix, path: "~/oss/phoenix", override: true},
+      {:phoenix, "~> 1.7.2"},
       {:phoenix_ecto, "~> 4.4"},
       {:ecto, github: "elixir-ecto/ecto", branch: "jv-sort-delete-param", override: true},
       {:ecto_sql, github: "elixir-ecto/ecto_sql", override: true},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_html, "~> 3.3"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, path: "~/oss/phoenix_live_view", override: true},
+      # {:phoenix_live_view, path: "~/oss/phoenix_live_view", override: true},
+      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", override: true},
       {:floki, ">= 0.30.0", only: :test},
       {:phoenix_live_dashboard, "~> 0.7.2"},
       {:esbuild, "~> 0.7", runtime: Mix.env() == :dev},

@@ -1,4 +1,14 @@
-# Forms
+# TodoTrek
+
+A trello-like todo board which shows off different dynamic form strategies with Phoenix LiveView.
+
+## Dynamic Forms
+
+The logged-in home page is the main todo dashboard. It contains sortable Lists, which are stream-based and can be re-ordered. Within each list, Todos can be manged and re-ordered. Each todo is implemented as an individual form.
+
+## Dynamic Nested Forms
+
+The new List and edit List pages show examples of traditional nested forms with a dynamic `inputs_for` for List notifications. The notification entries can be prepended, appended, re-ordered, and deleted using regular checkboxes and Ecto's new `sort_param` and `drop_param` options to `cast_assoc` and `cast_embed`.
 
 To start your Phoenix server:
 

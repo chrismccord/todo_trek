@@ -85,6 +85,7 @@ defmodule TodoTrekWeb.TodoListComponent do
       >
         add todo
       </.button>
+      <.button phx-click={JS.push("reset", target: @myself)} class="mt-4">reset</.button>
     </div>
     """
   end
@@ -110,19 +111,12 @@ defmodule TodoTrekWeb.TodoListComponent do
   end
 
   def update(%{list: list} = assigns, socket) do
+    todo_forms = Enum.map(list.todos, &to_change_form(&1, %{}))
+
     {:ok,
      socket
      |> assign(list_id: list.id, scope: assigns.scope)
-     |> maybe_stream(list)}
-  end
-
-  defp maybe_stream(socket, %Todos.List{} = list) do
-    if socket.assigns[:streams][:todos] do
-      socket
-    else
-      todo_forms = Enum.map(list.todos, &to_change_form(&1, %{}))
-      stream(socket, :todos, todo_forms)
-    end
+     |> stream(:todos, todo_forms, reset: true)}
   end
 
   def handle_event("validate", %{"todo" => todo_params} = params, socket) do
@@ -156,7 +150,6 @@ defmodule TodoTrekWeb.TodoListComponent do
          |> stream_insert(:todos, empty_form)}
 
       {:error, changeset} ->
-        dbg()
         {:noreply, stream_insert(socket, :todos, to_change_form(changeset, params, :insert))}
     end
   end
@@ -177,7 +170,13 @@ defmodule TodoTrekWeb.TodoListComponent do
 
   def handle_event("new", %{"at" => at}, socket) do
     todo = build_todo(socket.assigns.list_id)
-    {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}), at: at)}
+    # {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}), at: at)}
+    {:noreply, stream(socket, :todos, [to_change_form(todo, %{})], at: at)}
+  end
+
+  def handle_event("reset", _, socket) do
+    todo = build_todo(socket.assigns.list_id)
+    {:noreply, stream(socket, :todos, [to_change_form(todo, %{})], reset: true)}
   end
 
   def handle_event("reposition", %{"id" => id, "new" => new_idx, "old" => _} = params, socket) do
@@ -201,7 +200,6 @@ defmodule TodoTrekWeb.TodoListComponent do
   end
 
   def handle_event("restore_if_unsaved", %{"value" => val} = params, socket) do
-    IO.inspect({:params, params})
     id = params["id"]
     todo = Todos.get_todo!(socket.assigns.scope, id)
 

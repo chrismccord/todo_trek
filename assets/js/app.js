@@ -18,8 +18,9 @@
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
-import {Socket} from "/Users/chris/oss/phoenix/assets/js/phoenix"
-import {LiveSocket} from "/Users/chris/oss/phoenix_live_view/assets/js/phoenix_live_view"
+import {Socket} from "phoenix"
+import {LiveSocket} from "phoenix_live_view"
+// import {LiveSocket} from "/Users/chris/oss/phoenix_live_view/assets/js/phoenix_live_view"
 import topbar from "../vendor/topbar"
 import Sortable from "../vendor/sortable"
 
@@ -31,6 +32,7 @@ Hooks.Sortable = {
     let sorter = new Sortable(this.el, {
       group: group ? {name: group, pull: true, put: true} : undefined,
       animation: 150,
+      delay: 100,
       dragClass: "drag-item",
       ghostClass: "drag-ghost",
       forceFallback: true,

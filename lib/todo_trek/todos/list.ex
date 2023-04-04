@@ -30,17 +30,8 @@ defmodule TodoTrek.Todos.List do
   end
 
   defp email_changeset(email, attrs) do
-    # if attrs["_delete"] do
-    #   email
-    #   |> cast(attrs, [:email, :name])
-    #   |> validate_required([:email])
-    #   |> Map.put(:action, :delete)
-    #   |> IO.inspect()
-    # else
     email
     |> cast(attrs, [:email, :name])
     |> validate_required([:email])
-
-    # end
   end
 end
