@@ -31,7 +31,12 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
                 <.input type="text" field={f_nested[:email]} placeholder="email" />
                 <.input type="text" field={f_nested[:name]} placeholder="name" />
                 <label>
-                  <input type="checkbox" name="list[notifications_delete][]" value={f_nested.index} class="hidden" />
+                  <input
+                    type="checkbox"
+                    name="list[notifications_delete][]"
+                    value={f_nested.index}
+                    class="hidden"
+                  />
                   <.icon name="hero-x-mark" class="w-6 h-6 relative top-2" />
                 </label>
               </div>
@@ -107,8 +112,8 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     if Ecto.Changeset.get_field(changeset, :notifications) == [] do
-      email = %Todos.List.EmailNotification{}
-      changeset = Ecto.Changeset.put_change(changeset, :notifications, [email])
+      # email = %Todos.List.EmailNotification{}
+      # changeset = Ecto.Changeset.put_change(changeset, :notifications, [email])
       assign(socket, :form, to_form(changeset))
     else
       assign(socket, :form, to_form(changeset))

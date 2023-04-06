@@ -19,12 +19,76 @@
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
-import {LiveSocket} from "phoenix_live_view"
-// import {LiveSocket} from "/Users/chris/oss/phoenix_live_view/assets/js/phoenix_live_view"
+// import {LiveSocket} from "phoenix_live_view"
+import {LiveSocket} from "/Users/chris/oss/phoenix_live_view/assets/js/phoenix_live_view"
 import topbar from "../vendor/topbar"
 import Sortable from "../vendor/sortable"
 
 let Hooks = {}
+
+let scrollTop = () => {
+  return document.documentElement.scrollTop || document.body.scrollTop
+}
+
+Hooks.LocalTime = {
+  mounted(){ this.updated() },
+  updated() {
+    let dt = new Date(this.el.textContent)
+    let options = {hour: "2-digit", minute: "2-digit", hour12: true, timeZoneName: "short"}
+    this.el.textContent = `${dt.toLocaleString('en-US', options)}`
+    this.el.classList.remove("invisible")
+  }
+}
+
+function isElementAt(element, position) {
+  const rect = element.getBoundingClientRect()
+  const winHeight = (window.innerHeight || document.documentElement.clientHeight)
+
+  if(position === "top"){
+    return rect.top >= 0 && rect.left >= 0 && rect.top <= winHeight
+  } else if(position === "bottom") {
+    return rect.bottom >= 0 && rect.right >= 0 && rect.bottom <= winHeight
+  } else {
+    throw new Error(`Invalid position. "top" or "bottom" expected, got: ${position}`)
+  }
+}
+
+Hooks.InfiniteScroll = {
+  page() { return parseInt(this.el.dataset.page) },
+  mounted(){
+    let scrollBefore = scrollTop()
+    this.pending = this.page()
+    let maxPage = null
+    window.addEventListener("scroll", e => {
+      let scrollNow = scrollTop()
+      let page = this.page()
+
+      if(this.pending !== this.page()){
+        scrollBefore = scrollNow
+        return
+      }
+
+      let lastChild = this.el.lastElementChild
+      let firstChild = this.el.firstElementChild
+      if(page > 1 && scrollNow < scrollBefore && isElementAt(firstChild, "top")){
+        this.pending = page - 1
+        this.pushEvent("load-prev-page", {}, () => {
+          this.pending = this.page()
+          maxPage = null
+          firstChild.scrollIntoView({block: "center", inline: "nearest"})
+        })
+      } else if((!maxPage || page < maxPage) && scrollNow > scrollBefore && isElementAt(lastChild, "bottom")){
+        this.pending = page + 1
+        this.pushEvent("load-next-page", {}, () => {
+          if(this.pending !== this.page()){ maxPage = this.page() }
+          this.pending = this.page()
+          lastChild.scrollIntoView({block: "center"})
+        })
+      }
+      scrollBefore = scrollNow
+    })
+  }
+}
 
 Hooks.Sortable = {
   mounted(){
@@ -32,10 +96,10 @@ Hooks.Sortable = {
     let sorter = new Sortable(this.el, {
       group: group ? {name: group, pull: true, put: true} : undefined,
       animation: 150,
-      delay: 100,
+      // delay: 100,
       dragClass: "drag-item",
       ghostClass: "drag-ghost",
-      forceFallback: true,
+      // forceFallback: true,
       onEnd: e => {
         let params = {old: e.oldIndex, new: e.newIndex, to: e.to.dataset, ...e.item.dataset}
         this.pushEventTo(this.el, this.el.dataset["drop"] || "reposition", params)

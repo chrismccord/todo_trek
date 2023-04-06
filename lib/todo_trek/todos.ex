@@ -7,6 +7,7 @@ defmodule TodoTrek.Todos do
   alias TodoTrek.{Repo, Scope, Events}
 
   alias TodoTrek.Todos.{List, Todo}
+  alias TodoTrek.ActivityLog
 
   @max_todos 1000
 
@@ -21,7 +22,17 @@ defmodule TodoTrek.Todos do
     |> case do
       {:ok, _} ->
         new_list = %List{list | position: new_index}
-        broadcast(scope, %Events.ListRepositioned{list: new_list})
+
+        log =
+          ActivityLog.log(scope, list, %{
+            action: "list_position_updated",
+            subject_text: list.title,
+            before_text: list.position,
+            after_text: new_index
+          })
+
+        broadcast(scope, %Events.ListRepositioned{list: new_list, log: log})
+
         :ok
 
       {:error, _failed_op, failed_val, _changes_so_far} ->
@@ -31,7 +42,6 @@ defmodule TodoTrek.Todos do
 
   def multi_reposition(%Ecto.Multi{} = multi, name, %type{} = struct, lock, new_idx, where_query)
       when is_integer(new_idx) do
-
     old_position = from(og in type, where: og.id == ^struct.id, select: og.position)
 
     multi
@@ -70,7 +80,8 @@ defmodule TodoTrek.Todos do
     multi_update_all(multi, name, fn _ ->
       from(t in type,
         where: ^where_query,
-        where: t.position > subquery(from og in type, where: og.id == ^struct.id, select: og.position),
+        where:
+          t.position > subquery(from og in type, where: og.id == ^struct.id, select: og.position),
         update: [inc: [position: -1]]
       )
     end)
@@ -83,7 +94,17 @@ defmodule TodoTrek.Todos do
     |> case do
       {:ok, _} ->
         new_todo = %Todo{todo | position: new_index}
-        broadcast(scope, %Events.TodoRepositioned{todo: new_todo})
+
+        log =
+          ActivityLog.log(scope, todo, %{
+            action: "todo_position_updated",
+            subject_text: todo.title,
+            before_text: todo.position,
+            after_text: new_index
+          })
+
+        broadcast(scope, %Events.TodoRepositioned{todo: new_todo, log: log})
+
         :ok
 
       {:error, _failed_op, failed_val, _changes_so_far} ->
@@ -102,7 +123,8 @@ defmodule TodoTrek.Todos do
     |> multi_update_all(:dec_positions, fn _ ->
       from(t in Todo,
         where: t.list_id == ^todo.list_id,
-        where: t.position > subquery(from og in Todo, where: og.id == ^todo.id, select: og.position),
+        where:
+          t.position > subquery(from og in Todo, where: og.id == ^todo.id, select: og.position),
         update: [inc: [position: -1]]
       )
     end)
@@ -120,9 +142,18 @@ defmodule TodoTrek.Todos do
     |> Repo.transaction()
     |> case do
       {:ok, _} ->
-        broadcast(scope, %Events.TodoDeleted{todo: todo})
         new_todo = %Todo{todo | list: list, list_id: list.id, position: at_index}
-        broadcast(scope, %Events.TodoRepositioned{todo: new_todo})
+        log =
+          ActivityLog.log(scope, new_todo, %{
+            action: "todo_moved",
+            subject_text: new_todo.title,
+            before_text: todo.list.title,
+            after_text: list.title
+          })
+
+        broadcast(scope, %Events.TodoDeleted{todo: todo})
+        broadcast(scope, %Events.TodoRepositioned{todo: new_todo, log: log})
+
         :ok
 
       {:error, _failed_op, failed_val, _changes_so_far} ->
@@ -138,7 +169,15 @@ defmodule TodoTrek.Todos do
     |> Repo.transaction()
     |> case do
       {:ok, %{todo: todo}} ->
-        broadcast(scope, %Events.TodoDeleted{todo: todo})
+        log =
+          ActivityLog.log(scope, todo, %{
+            action: "todo_deleted",
+            subject_text: todo.title,
+            after_text: todo.list.title
+          })
+
+        broadcast(scope, %Events.TodoDeleted{todo: todo, log: log})
+
         {:ok, todo}
 
       {:error, _failed_op, failed_val, _changes_so_far} ->
@@ -165,10 +204,19 @@ defmodule TodoTrek.Todos do
 
     query = from(t in Todo, where: t.id == ^todo.id and t.user_id == ^scope.current_user.id)
     {1, _} = Repo.update_all(query, set: [status: new_status])
-    todo = %Todo{todo | status: new_status}
-    broadcast(scope, %Events.TodoToggled{todo: todo})
+    new_todo = %Todo{todo | status: new_status}
 
-    {:ok, todo}
+    log =
+      ActivityLog.log(scope, new_todo, %{
+        action: "todo_toggled",
+        subject_text: todo.title,
+        before_text: todo.status,
+        after_text: new_status
+      })
+
+    broadcast(scope, %Events.TodoToggled{todo: new_todo, log: log})
+
+    {:ok, new_todo}
   end
 
   def get_todo!(%Scope{} = scope, id) do
@@ -182,9 +230,19 @@ defmodule TodoTrek.Todos do
     |> Todo.changeset(params)
     |> Repo.update()
     |> case do
-      {:ok, todo} ->
-        broadcast(scope, %Events.TodoUpdated{todo: todo})
-        {:ok, todo}
+      {:ok, new_todo} ->
+        log =
+          if todo.title != new_todo.title do
+            ActivityLog.log(scope, new_todo, %{
+              action: "todo_updated",
+              subject_text: todo.title,
+              after_text: new_todo.title
+            })
+          end
+
+        broadcast(scope, %Events.TodoUpdated{todo: new_todo, log: log})
+
+        {:ok, new_todo}
 
       other ->
         other
@@ -211,7 +269,15 @@ defmodule TodoTrek.Todos do
     |> Repo.transaction()
     |> case do
       {:ok, %{todo: todo}} ->
-        broadcast(scope, %Events.TodoAdded{todo: todo})
+        log =
+          ActivityLog.log(scope, todo, %{
+            action: "todo_created",
+            subject_text: todo.title,
+            after_text: list.title
+          })
+
+        broadcast(scope, %Events.TodoAdded{todo: todo, log: log})
+
         {:ok, todo}
 
       {:error, :todo, changeset, _changes_so_far} ->
@@ -294,7 +360,15 @@ defmodule TodoTrek.Todos do
     |> case do
       {:ok, %{list: list}} ->
         list = Repo.preload(list, :todos)
-        broadcast(scope, %Events.ListAdded{list: list})
+
+        log =
+          ActivityLog.log(scope, list, %{
+            action: "list_created",
+            subject_text: list.title
+          })
+
+        broadcast(scope, %Events.ListAdded{list: list, log: log})
+
         {:ok, list}
 
       {:error, _failed_op, failed_val, _changes_so_far} ->
@@ -319,9 +393,19 @@ defmodule TodoTrek.Todos do
     |> List.changeset(attrs)
     |> Repo.update()
     |> case do
-      {:ok, list} ->
-        broadcast(scope, %Events.ListUpdated{list: list})
-        {:ok, list}
+      {:ok, new_list} ->
+        log =
+          if list.title != new_list.title do
+            ActivityLog.log(scope, new_list, %{
+              action: "list_updated",
+              subject_text: list.title,
+              after_text: new_list.title
+            })
+          end
+
+        broadcast(scope, %Events.ListUpdated{list: new_list, log: log})
+
+        {:ok, new_list}
 
       other ->
         other
@@ -348,7 +432,14 @@ defmodule TodoTrek.Todos do
     |> Repo.transaction()
     |> case do
       {:ok, %{list: list}} ->
-        broadcast(scope, %Events.ListDeleted{list: list})
+        log =
+          ActivityLog.log(scope, list, %{
+            action: "list_deleted",
+            subject_text: list.title
+          })
+
+        broadcast(scope, %Events.ListDeleted{list: list, log: log})
+
         {:ok, list}
 
       {:error, _failed_op, failed_val, _changes_so_far} ->

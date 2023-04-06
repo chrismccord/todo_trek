@@ -116,12 +116,14 @@ defmodule TodoTrekWeb.TodoListComponent do
     {:ok,
      socket
      |> assign(list_id: list.id, scope: assigns.scope)
-     |> stream(:todos, todo_forms, reset: true)}
+     |> stream(:todos, todo_forms)}
   end
 
   def handle_event("validate", %{"todo" => todo_params} = params, socket) do
     todo = %Todo{id: params["id"], list_id: socket.assigns.list_id}
-    {:noreply, stream_insert(socket, :todos, to_change_form(todo, todo_params, :validate))}
+
+    {:noreply,
+     stream_insert(socket, :todos, to_change_form(todo, todo_params, :validate))}
   end
 
   def handle_event("save", %{"id" => id, "todo" => params}, socket) do
@@ -132,7 +134,8 @@ defmodule TodoTrekWeb.TodoListComponent do
         {:noreply, stream_insert(socket, :todos, to_change_form(updated_todo, %{}))}
 
       {:error, changeset} ->
-        {:noreply, stream_insert(socket, :todos, to_change_form(changeset, %{}, :insert))}
+        {:noreply,
+         stream_insert(socket, :todos, to_change_form(changeset, %{}, :insert))}
     end
   end
 
@@ -150,7 +153,8 @@ defmodule TodoTrekWeb.TodoListComponent do
          |> stream_insert(:todos, empty_form)}
 
       {:error, changeset} ->
-        {:noreply, stream_insert(socket, :todos, to_change_form(changeset, params, :insert))}
+        {:noreply,
+         stream_insert(socket, :todos, to_change_form(changeset, params, :insert))}
     end
   end
 
@@ -170,8 +174,7 @@ defmodule TodoTrekWeb.TodoListComponent do
 
   def handle_event("new", %{"at" => at}, socket) do
     todo = build_todo(socket.assigns.list_id)
-    # {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}), at: at)}
-    {:noreply, stream(socket, :todos, [to_change_form(todo, %{})], at: at)}
+    {:noreply, stream_insert(socket, :todos, to_change_form(todo, %{}), at: at)}
   end
 
   def handle_event("reset", _, socket) do
@@ -225,11 +228,12 @@ end
 defmodule TodoTrekWeb.HomeLive do
   use TodoTrekWeb, :live_view
 
-  alias TodoTrek.{Events, Todos}
+  alias TodoTrek.{Events, Todos, ActivityLog}
+  alias TodoTrekWeb.Timeline
 
   def render(assigns) do
     ~H"""
-    <div class="space-y-5">
+    <div id="home" class="space-y-5">
       <.header>
         Your Lists
         <:actions>
@@ -268,23 +272,24 @@ defmodule TodoTrekWeb.HomeLive do
           </div>
         </div>
       </div>
-      <.modal
-        :if={@live_action in [:new_list, :edit_list]}
-        id="list-modal"
-        show
-        on_cancel={JS.patch(~p"/")}
-      >
-        <.live_component
-          scope={@scope}
-          module={TodoTrekWeb.ListLive.FormComponent}
-          id={@list.id || :new}
-          title={@page_title}
-          action={@live_action}
-          list={@list}
-          patch={~p"/"}
-        />
-      </.modal>
+      <Timeline.activity_logs stream={@streams.activity_logs} page={@page} />
     </div>
+    <.modal
+      :if={@live_action in [:new_list, :edit_list]}
+      id="list-modal"
+      show
+      on_cancel={JS.patch(~p"/")}
+    >
+      <.live_component
+        scope={@scope}
+        module={TodoTrekWeb.ListLive.FormComponent}
+        id={@list.id || :new}
+        title={@page_title}
+        action={@live_action}
+        list={@list}
+        patch={~p"/"}
+      />
+    </.modal>
     """
   end
 
@@ -293,8 +298,13 @@ defmodule TodoTrekWeb.HomeLive do
       Todos.subscribe(socket.assigns.scope)
     end
 
-    lists = Todos.active_lists(socket.assigns.scope, 10)
-    {:ok, stream(socket, :lists, lists)}
+    lists = Todos.active_lists(socket.assigns.scope, 20)
+
+    {:ok,
+     socket
+     |> assign(page: 1, per_page: 20)
+     |> stream(:lists, lists)
+     |> paginate_logs(1)}
   end
 
   def handle_params(params, _uri, socket) do
@@ -319,26 +329,73 @@ defmodule TodoTrekWeb.HomeLive do
     |> assign(:list, Todos.get_list!(socket.assigns.scope, id))
   end
 
-  def handle_info({TodoTrek.Todos, %Events.ListAdded{list: list}}, socket) do
-    {:noreply, stream_insert(socket, :lists, list)}
+  def handle_info({TodoTrek.Todos, %Events.ListAdded{list: list} = event}, socket) do
+    {:noreply,
+     socket
+     |> stream_insert(:lists, list)
+     |> stream_new_log(event)}
   end
 
-  def handle_info({TodoTrek.Todos, %Events.ListUpdated{list: list}}, socket) do
-    {:noreply, stream_insert(socket, :lists, list)}
+  def handle_info({TodoTrek.Todos, %Events.ListUpdated{list: list} = event}, socket) do
+    {:noreply,
+     socket
+     |> stream_insert(:lists, list)
+     |> stream_new_log(event)}
   end
 
   def handle_info({TodoTrek.Todos, %_event{todo: todo} = event}, socket) do
     send_update(TodoTrekWeb.TodoListComponent, id: todo.list_id, event: event)
-    {:noreply, socket}
+    {:noreply, stream_new_log(socket, event)}
   end
 
-  def handle_info({TodoTrek.Todos, %Events.ListRepositioned{list: list}}, socket) do
-    {:noreply, stream_insert(socket, :lists, list, at: list.position)}
+  def handle_info({TodoTrek.Todos, %Events.ListRepositioned{list: list} = event}, socket) do
+    {:noreply,
+     socket
+     |> stream_insert(:lists, list, at: list.position)
+     |> stream_new_log(event)}
   end
 
   def handle_event("reposition", %{"id" => id, "new" => new_idx, "old" => _old_idx}, socket) do
     list = Todos.get_list!(socket.assigns.scope, id)
     Todos.update_list_position(socket.assigns.scope, list, new_idx)
     {:noreply, socket}
+  end
+
+  def handle_event("load-next-page", _, socket) do
+    {:noreply, paginate_logs(socket, socket.assigns.page + 1)}
+  end
+
+  def handle_event("load-prev-page", _, socket) do
+    {:noreply, paginate_logs(socket, socket.assigns.page - 1)}
+  end
+
+  defp stream_new_log(socket, %_{log: %ActivityLog.Entry{} = log} = _event) do
+    stream_insert(socket, :activity_logs, log, at: 0)
+  end
+
+  defp stream_new_log(socket, %_{} = _event) do
+    socket
+  end
+
+  defp paginate_logs(socket, new_page) do
+    %{per_page: per_page, page: cur_page, scope: scope} = socket.assigns
+    logs = ActivityLog.list_user_logs(scope, offset: (new_page - 1) * per_page, limit: per_page)
+
+    {logs, at, limit} =
+      if new_page >= cur_page do
+        {logs, -1, per_page * 3 * -1}
+      else
+        {Enum.reverse(logs), 0, per_page * 3}
+      end
+
+    case logs do
+      [] ->
+        socket
+
+      [_ | _] = logs ->
+        socket
+        |> assign(page: if(logs == [], do: cur_page, else: new_page))
+        |> stream(:activity_logs, logs, at: at, limit: limit)
+    end
   end
 end

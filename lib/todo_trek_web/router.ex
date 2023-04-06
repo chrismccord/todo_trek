@@ -20,7 +20,8 @@ defmodule TodoTrekWeb.Router do
   scope "/", TodoTrekWeb do
     pipe_through :browser
 
-    live_session :default, on_mount: [{TodoTrekWeb.UserAuth, :ensure_authenticated}, TodoTrekWeb.Scope] do
+    live_session :default,
+      on_mount: [{TodoTrekWeb.UserAuth, :ensure_authenticated}, TodoTrekWeb.Scope] do
       live "/", HomeLive, :dashboard
       live "/lists/new", HomeLive, :new_list
       live "/lists/:id/edit", HomeLive, :edit_list
