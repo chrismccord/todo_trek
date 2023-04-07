@@ -10,16 +10,22 @@ defmodule TodoTrekWeb.Timeline do
     ~H"""
     <span
       :if={@page > 1}
-      class="text-5xl fixed bottom-2 right-2 bg-zinc-900 text-white rounded-lg p-3 text-center min-w-[60px] z-50 opacity-80"
+      class="text-3xl fixed bottom-2 right-2 bg-zinc-900 text-white rounded-lg p-3 text-center min-w-[65px] z-50 opacity-80"
     >
+      <span class="text-sm">pg</span>
       <%= @page %>
     </span>
-    <ul id="activity" phx-update="stream" phx-hook="InfiniteScroll" data-page={@page}>
+    <ul
+      id="activity"
+      phx-update="stream"
+      phx-hook="InfiniteScroll"
+      data-page={@page}
+      class={["pb-[500px]", if(@page == 1, do: "pt-10", else: "pt-[500px]")]}
+    >
       <li :for={{id, entry} <- @stream} id={id}>
         <.activity_entry action={entry.action} entry={entry} />
       </li>
     </ul>
-    <div class="min-h-[500px]"></div>
     """
   end
 

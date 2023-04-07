@@ -26,10 +26,6 @@ import Sortable from "../vendor/sortable"
 
 let Hooks = {}
 
-let scrollTop = () => {
-  return document.documentElement.scrollTop || document.body.scrollTop
-}
-
 Hooks.LocalTime = {
   mounted(){ this.updated() },
   updated() {
@@ -38,6 +34,10 @@ Hooks.LocalTime = {
     this.el.textContent = `${dt.toLocaleString('en-US', options)}`
     this.el.classList.remove("invisible")
   }
+}
+
+let scrollTop = () => {
+  return document.documentElement.scrollTop || document.body.scrollTop
 }
 
 function isElementAt(element, position) {
@@ -59,12 +59,15 @@ Hooks.InfiniteScroll = {
     let scrollBefore = scrollTop()
     this.pending = this.page()
     let maxPage = null
+    let onPendingScroll = () => null
     window.addEventListener("scroll", e => {
       let scrollNow = scrollTop()
       let page = this.page()
 
       if(this.pending !== this.page()){
         scrollBefore = scrollNow
+        onPendingScroll()
+
         return
       }
 
@@ -72,14 +75,20 @@ Hooks.InfiniteScroll = {
       let firstChild = this.el.firstElementChild
       if(page > 1 && scrollNow < scrollBefore && isElementAt(firstChild, "top")){
         this.pending = page - 1
+        onPendingScroll = () => firstChild.scrollIntoView(true)
+        topbar.show(200)
         this.pushEvent("load-prev-page", {}, () => {
+          topbar.hide()
           this.pending = this.page()
           maxPage = null
           firstChild.scrollIntoView({block: "center", inline: "nearest"})
         })
       } else if((!maxPage || page < maxPage) && scrollNow > scrollBefore && isElementAt(lastChild, "bottom")){
         this.pending = page + 1
+        topbar.show(200)
+        onPendingScroll = () => null
         this.pushEvent("load-next-page", {}, () => {
+          topbar.hide(200)
           if(this.pending !== this.page()){ maxPage = this.page() }
           this.pending = this.page()
           lastChild.scrollIntoView({block: "center"})

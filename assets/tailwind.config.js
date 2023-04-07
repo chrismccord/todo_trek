@@ -29,6 +29,7 @@ module.exports = {
     plugin(({addVariant}) => addVariant("phx-click-loading", [".phx-click-loading&", ".phx-click-loading &"])),
     plugin(({addVariant}) => addVariant("phx-submit-loading", [".phx-submit-loading&", ".phx-submit-loading &"])),
     plugin(({addVariant}) => addVariant("phx-change-loading", [".phx-change-loading&", ".phx-change-loading &"])),
+    plugin(({addVariant}) => addVariant("phx-error", [".phx-error&", ".phx-error &"])),
     plugin(({addVariant}) => addVariant("drag-item", [".drag-item&", ".drag-item &"])),
     plugin(({addVariant}) => addVariant("drag-ghost", [".drag-ghost&", ".drag-ghost &"])),
 
