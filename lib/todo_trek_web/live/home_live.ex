@@ -258,6 +258,9 @@ defmodule TodoTrekWeb.HomeLive do
                 <.link patch={~p"/lists/#{list}/edit"} alt="Edit list">
                   <.icon name="hero-pencil-square" />
                 </.link>
+                <.link phx-click="delete-list" phx-value-id={list.id} alt="delete list" data-confirm="Are you sure?">
+                  <.icon name="hero-x-mark" />
+                </.link>
               </:actions>
             </.header>
             <.live_component
@@ -340,6 +343,13 @@ defmodule TodoTrekWeb.HomeLive do
      |> stream_new_log(event)}
   end
 
+  def handle_info({TodoTrek.Todos, %Events.ListDeleted{list: list} = event}, socket) do
+    {:noreply,
+     socket
+     |> stream_delete(:lists, list)
+     |> stream_new_log(event)}
+  end
+
   def handle_info({TodoTrek.Todos, %_event{todo: todo} = event}, socket) do
     send_update(TodoTrekWeb.TodoListComponent, id: todo.list_id, event: event)
     {:noreply, stream_new_log(socket, event)}
@@ -355,6 +365,12 @@ defmodule TodoTrekWeb.HomeLive do
   def handle_event("reposition", %{"id" => id, "new" => new_idx, "old" => _old_idx}, socket) do
     list = Todos.get_list!(socket.assigns.scope, id)
     Todos.update_list_position(socket.assigns.scope, list, new_idx)
+    {:noreply, socket}
+  end
+
+  def handle_event("delete-list", %{"id" => id}, socket) do
+    list = Todos.get_list!(socket.assigns.scope, id)
+    Todos.delete_list(socket.assigns.scope, list)
     {:noreply, socket}
   end
 
