@@ -36,69 +36,6 @@ Hooks.LocalTime = {
   }
 }
 
-let scrollTop = () => {
-  return document.documentElement.scrollTop || document.body.scrollTop
-}
-
-function isElementAt(element, position) {
-  const rect = element.getBoundingClientRect()
-  const winHeight = (window.innerHeight || document.documentElement.clientHeight)
-
-  if(position === "top"){
-    return rect.top >= 0 && rect.left >= 0 && rect.top <= winHeight
-  } else if(position === "bottom") {
-    return rect.bottom >= 0 && rect.right >= 0 && rect.bottom <= winHeight
-  } else {
-    throw new Error(`Invalid position. "top" or "bottom" expected, got: ${position}`)
-  }
-}
-
-Hooks.InfiniteScroll = {
-  page() { return parseInt(this.el.dataset.page) },
-  mounted(){
-    let scrollBefore = scrollTop()
-    this.pending = this.page()
-    let maxPage = null
-    let onPendingScroll = () => null
-    window.addEventListener("scroll", e => {
-      let scrollNow = scrollTop()
-      let page = this.page()
-
-      if(this.pending !== this.page()){
-        scrollBefore = scrollNow
-        onPendingScroll()
-
-        return
-      }
-
-      let lastChild = this.el.lastElementChild
-      let firstChild = this.el.firstElementChild
-      if(page > 1 && scrollNow < scrollBefore && isElementAt(firstChild, "top")){
-        this.pending = page - 1
-        onPendingScroll = () => firstChild.scrollIntoView(true)
-        topbar.show(200)
-        this.pushEvent("load-prev-page", {}, () => {
-          topbar.hide()
-          this.pending = this.page()
-          maxPage = null
-          firstChild.scrollIntoView({block: "center", inline: "nearest"})
-        })
-      } else if((!maxPage || page < maxPage) && scrollNow > scrollBefore && isElementAt(lastChild, "bottom")){
-        this.pending = page + 1
-        topbar.show(200)
-        onPendingScroll = () => null
-        this.pushEvent("load-next-page", {}, () => {
-          topbar.hide(200)
-          if(this.pending !== this.page()){ maxPage = this.page() }
-          this.pending = this.page()
-          lastChild.scrollIntoView({block: "center"})
-        })
-      }
-      scrollBefore = scrollNow
-    })
-  }
-}
-
 Hooks.Sortable = {
   mounted(){
     let group = this.el.dataset.group

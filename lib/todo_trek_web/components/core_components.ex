@@ -147,22 +147,22 @@ defmodule TodoTrekWeb.CoreComponents do
     <.flash kind={:info} title="Success!" flash={@flash} />
     <.flash kind={:error} title="Error!" flash={@flash} />
     <.flash
-      id="disconnected"
+      id="client-error"
       kind={:error}
       title="We can't find the internet"
-      phx-disconnected={show(".phx-socket-error #disconnected")}
-      phx-connected={hide("#disconnected")}
+      phx-disconnected={show(".phx-client-error #client-error")}
+      phx-connected={hide("#client-error")}
       hidden
     >
       Attempting to reconnect <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />
     </.flash>
 
     <.flash
-      id="internal-server-error"
+      id="server-error"
       kind={:error}
       title="Something went wrong!"
-      phx-disconnected={show(".phx-error #internal-server-error")}
-      phx-connected={hide("#internal-server-error")}
+      phx-disconnected={show(".phx-server-error #server-error")}
+      phx-connected={hide("#server-error")}
       hidden
     >
       Hang tight while we retry <.icon name="hero-arrow-path" class="ml-1 h-3 w-3 animate-spin" />

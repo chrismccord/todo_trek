@@ -122,8 +122,7 @@ defmodule TodoTrekWeb.TodoListComponent do
   def handle_event("validate", %{"todo" => todo_params} = params, socket) do
     todo = %Todo{id: params["id"], list_id: socket.assigns.list_id}
 
-    {:noreply,
-     stream_insert(socket, :todos, to_change_form(todo, todo_params, :validate))}
+    {:noreply, stream_insert(socket, :todos, to_change_form(todo, todo_params, :validate))}
   end
 
   def handle_event("save", %{"id" => id, "todo" => params}, socket) do
@@ -134,8 +133,7 @@ defmodule TodoTrekWeb.TodoListComponent do
         {:noreply, stream_insert(socket, :todos, to_change_form(updated_todo, %{}))}
 
       {:error, changeset} ->
-        {:noreply,
-         stream_insert(socket, :todos, to_change_form(changeset, %{}, :insert))}
+        {:noreply, stream_insert(socket, :todos, to_change_form(changeset, %{}, :insert))}
     end
   end
 
@@ -153,8 +151,7 @@ defmodule TodoTrekWeb.TodoListComponent do
          |> stream_insert(:todos, empty_form)}
 
       {:error, changeset} ->
-        {:noreply,
-         stream_insert(socket, :todos, to_change_form(changeset, params, :insert))}
+        {:noreply, stream_insert(socket, :todos, to_change_form(changeset, params, :insert))}
     end
   end
 
@@ -237,7 +234,7 @@ defmodule TodoTrekWeb.HomeLive do
       <.header>
         Your Lists
         <:actions>
-          <.link patch={~p"/lists/new"} id="new-list">
+          <.link patch={~p"/lists/new"}>
             <.button>New List</.button>
           </.link>
         </:actions>
@@ -272,7 +269,7 @@ defmodule TodoTrekWeb.HomeLive do
           </div>
         </div>
       </div>
-      <Timeline.activity_logs stream={@streams.activity_logs} page={@page} />
+      <Timeline.activity_logs stream={@streams.activity_logs} page={@page} end_of_timeline?={@end_of_timeline?}/>
     </div>
     <.modal
       :if={@live_action in [:new_list, :edit_list]}
@@ -361,12 +358,24 @@ defmodule TodoTrekWeb.HomeLive do
     {:noreply, socket}
   end
 
-  def handle_event("load-next-page", _, socket) do
+  def handle_event("top", _, socket) do
+    {:noreply, socket |> put_flash(:info, "You reached the top") |> paginate_logs(1)}
+  end
+
+  def handle_event("next-page", _, socket) do
     {:noreply, paginate_logs(socket, socket.assigns.page + 1)}
   end
 
-  def handle_event("load-prev-page", _, socket) do
-    {:noreply, paginate_logs(socket, socket.assigns.page - 1)}
+  def handle_event("prev-page", %{"_overran" => true}, socket) do
+    {:noreply, paginate_logs(socket, 1)}
+  end
+
+  def handle_event("prev-page", _, socket) do
+    if socket.assigns.page > 1 do
+      {:noreply, paginate_logs(socket, socket.assigns.page - 1)}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp stream_new_log(socket, %_{log: %ActivityLog.Entry{} = log} = _event) do
@@ -377,7 +386,7 @@ defmodule TodoTrekWeb.HomeLive do
     socket
   end
 
-  defp paginate_logs(socket, new_page) do
+  defp paginate_logs(socket, new_page) when new_page >= 1 do
     %{per_page: per_page, page: cur_page, scope: scope} = socket.assigns
     logs = ActivityLog.list_user_logs(scope, offset: (new_page - 1) * per_page, limit: per_page)
 
@@ -390,10 +399,11 @@ defmodule TodoTrekWeb.HomeLive do
 
     case logs do
       [] ->
-        socket
+        assign(socket, end_of_timeline?: at == -1)
 
       [_ | _] = logs ->
         socket
+        |> assign(end_of_timeline?: false)
         |> assign(page: if(logs == [], do: cur_page, else: new_page))
         |> stream(:activity_logs, logs, at: at, limit: limit)
     end

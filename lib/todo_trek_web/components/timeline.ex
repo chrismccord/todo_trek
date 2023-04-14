@@ -5,6 +5,7 @@ defmodule TodoTrekWeb.Timeline do
 
   attr :stream, :any, required: true
   attr :page, :integer, required: true
+  attr :end_of_timeline?, :boolean, required: true
 
   def activity_logs(assigns) do
     ~H"""
@@ -15,17 +16,25 @@ defmodule TodoTrekWeb.Timeline do
       <span class="text-sm">pg</span>
       <%= @page %>
     </span>
+
     <ul
       id="activity"
       phx-update="stream"
-      phx-hook="InfiniteScroll"
-      data-page={@page}
-      class={["pb-[500px]", if(@page == 1, do: "pt-10", else: "pt-[500px]")]}
+      phx-viewport-top={@page > 1 && "prev-page"}
+      phx-viewport-bottom={!@end_of_timeline? && "next-page"}
+      phx-page-loading
+      class={[
+        if(@end_of_timeline?, do: "pb-10", else: "pb-[calc(200vh)]"),
+        if(@page == 1, do: "pt-10", else: "pt-[calc(200vh)]")
+      ]}
     >
       <li :for={{id, entry} <- @stream} id={id}>
         <.activity_entry action={entry.action} entry={entry} />
       </li>
     </ul>
+    <div :if={@end_of_timeline?} class="mt-5 text-[50px] text-center">
+      🎉 You made it to the beginning of time 🎉
+    </div>
     """
   end
 

@@ -22,12 +22,13 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
             <input type="checkbox" name="list[notifications_order][]" class="hidden" />
             <.icon name="hero-plus-circle" /> prepend
           </label>
-
+          <h1 class="text-md font-semibold leading-8 text-zinc-800">
+            Invite Users
+          </h1>
           <div id="notifications" phx-hook="SortableInputsFor" class="space-y-2">
             <.inputs_for :let={f_nested} field={@form[:notifications]}>
               <div class="flex space-x-2">
                 <input type="hidden" name="list[notifications_order][]" value={f_nested.index} />
-                <span data-handle><.icon name="hero-bars-3" class="w-6 h-6 relative top-2" /></span>
                 <.input type="text" field={f_nested[:email]} placeholder="email" />
                 <.input type="text" field={f_nested[:name]} placeholder="name" />
                 <label>
@@ -45,7 +46,7 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
 
           <label class="block cursor-pointer">
             <input type="checkbox" name="list[notifications_order][]" class="hidden" />
-            <.icon name="hero-plus-circle" /> append
+            <.icon name="hero-plus-circle" /> add more
           </label>
         </div>
 
@@ -75,7 +76,6 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
       socket.assigns.list
       |> Todos.change_list(list_params)
       |> Map.put(:action, :validate)
-      |> IO.inspect()
 
     {:noreply, assign_form(socket, changeset)}
   end
@@ -112,8 +112,8 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     if Ecto.Changeset.get_field(changeset, :notifications) == [] do
-      # email = %Todos.List.EmailNotification{}
-      # changeset = Ecto.Changeset.put_change(changeset, :notifications, [email])
+      email = %Todos.List.EmailNotification{}
+      changeset = Ecto.Changeset.put_change(changeset, :notifications, [email])
       assign(socket, :form, to_form(changeset))
     else
       assign(socket, :form, to_form(changeset))
