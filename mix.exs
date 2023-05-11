@@ -35,7 +35,7 @@ defmodule TodoTrek.MixProject do
       {:bcrypt_elixir, "~> 3.0"},
       {:phoenix, "~> 1.7.2"},
       {:phoenix_ecto, "~> 4.4"},
-      {:ecto, "~> 3.10.0"},
+      {:ecto, "~> 3.10.1"},
       {:ecto_sql, "~> 3.10.1"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_html, "~> 3.3"},
