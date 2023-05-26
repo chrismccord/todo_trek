@@ -64,8 +64,6 @@ defmodule TodoTrekWeb.CoreComponents do
           <div class="w-full max-w-3xl p-4 sm:p-6 lg:py-8">
             <.focus_wrap
               id={"#{@id}-container"}
-              phx-window-keydown={JS.exec("phx-cancel", to: "##{@id}")}
-              phx-key="escape"
               phx-click-away={JS.exec("phx-cancel", to: "##{@id}")}
               class="shadow-zinc-700/10 ring-zinc-700/10 relative hidden rounded-2xl bg-white p-14 shadow-lg ring-1 transition"
             >
@@ -572,80 +570,14 @@ defmodule TodoTrekWeb.CoreComponents do
   """
   attr :name, :string, required: true
   attr :class, :any, default: nil
+  attr :rest, :global
 
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
-    <span class={[@name, @class]} />
+    <span class={[@name, @class]} {@rest} />
     """
   end
 
-  attr :field, Phoenix.HTML.FormField,
-    required: true,
-    doc: "A %Phoenix.HTML.Form{}/field name tuple, for example: {@form[:email]}."
-
-  attr :id, :string,
-    doc: """
-    The id to be used in the form, defaults to the concatenation of the given
-    field to the parent form id.
-    """
-
-  attr :as, :atom,
-    doc: """
-    The name to be used in the form, defaults to the concatenation of the given
-    field to the parent form name.
-    """
-
-  attr :default, :any, doc: "The value to use if none is available."
-
-  attr :skip_hidden, :boolean,
-    default: false,
-    doc: """
-    Skip the automatic rendering of hidden fields to allow for more tight control
-    over the generated markup.
-    """
-
-  slot :inner_block, required: true, doc: "The content rendered for each nested form."
-  slot :prepend
-  slot :append
-
-  def nested_inputs(assigns) do
-    ~H"""
-    <label :if={@prepend != []}>
-      <input type="checkbox" name={@field.name <> "[-1][_new]"} class="hidden" />
-      <%= render_slot(@prepend) %>
-    </label>
-    <.inputs_for :let={f} {assigns}><%= render_slot(@inner_block, f) %></.inputs_for>
-    <label :if={@append != []}>
-      <input type="checkbox" name={@field.name <> "[9999][_new]"} class="hidden" />
-      <%= render_slot(@append) %>
-    </label>
-    """
-  end
-
-  attr :field, :any, required: true
-  attr :at, :integer, default: -1
-  slot :inner_block, required: true
-
-  def insert_inputs_for(assigns) do
-    ~H"""
-    <label>
-      <input type="checkbox" name={@field.name <> "[@]"} value={@at} class="hidden" />
-      <%= render_slot(@inner_block) %>
-    </label>
-    """
-  end
-
-  attr :field, :any, required: true
-  slot :inner_block, required: true
-
-  def delete_inputs_for(assigns) do
-    ~H"""
-    <label>
-      <input type="checkbox" name={@field.name <> "[_delete]"} class="hidden" />
-      <%= render_slot(@inner_block) %>
-    </label>
-    """
-  end
 
   ## JS Commands
 

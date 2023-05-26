@@ -1,4 +1,7 @@
 defmodule TodoTrek.Events do
+  @moduledoc """
+  Defines Event structs for use within the pubsub system.
+  """
   defmodule ListAdded do
     defstruct list: nil, log: nil
   end

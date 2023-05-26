@@ -1,4 +1,12 @@
 defmodule TodoTrek.ActivityLog do
+  @moduledoc """
+  Defines a basic activity log for decoupled activity streams.
+
+  > This module is *not intended for use as a forensic log* of
+  events. It does not provide transactional guarantees and cannot
+  be used to recreate state in a system, such as a full event source
+  or similar log.
+  """
   import Ecto.Query
   alias TodoTrek.ActivityLog
   alias TodoTrek.ActivityLog.Entry

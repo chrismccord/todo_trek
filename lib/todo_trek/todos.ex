@@ -11,10 +11,22 @@ defmodule TodoTrek.Todos do
 
   @max_todos 1000
 
+  @doc """
+  Subscribers the given scope to the todo pubsub.
+
+  For logged in users, this will be a topic scoped only to the logged in user.
+  If the system is extended to allow shared lists, the topic subscription could
+  be derived for a particular organizatoin or team, particlar list, and so on.
+  """
   def subscribe(%Scope{} = scope) do
     Phoenix.PubSub.subscribe(TodoTrek.PubSub, topic(scope))
   end
 
+  @doc """
+  Reorders a list in the current users board.
+
+  Broadcasts `%Events.ListRepositioned{}` on the scoped topic when successful.
+  """
   def update_list_position(%Scope{} = scope, %List{} = list, new_index) do
     Ecto.Multi.new()
     |> multi_reposition(:new, list, list, new_index, user_id: scope.current_user.id)
@@ -40,53 +52,11 @@ defmodule TodoTrek.Todos do
     end
   end
 
-  def multi_reposition(%Ecto.Multi{} = multi, name, %type{} = struct, lock, new_idx, where_query)
-      when is_integer(new_idx) do
-    old_position = from(og in type, where: og.id == ^struct.id, select: og.position)
+  @doc """
+  Updates the position of a todo in the list it belongs to.
 
-    multi
-    |> Repo.multi_transaction_lock(name, lock)
-    |> Ecto.Multi.run({:index, name}, fn repo, _changes ->
-      case repo.one(from(t in type, where: ^where_query, select: count(t.id))) do
-        count when new_idx < count -> {:ok, new_idx}
-        count -> {:ok, count - 1}
-      end
-    end)
-    |> multi_update_all({:dec_positions, name}, fn %{{:index, ^name} => computed_index} ->
-      from(t in type,
-        where: ^where_query,
-        where: t.id != ^struct.id,
-        where: t.position > subquery(old_position) and t.position <= ^computed_index,
-        update: [inc: [position: -1]]
-      )
-    end)
-    |> multi_update_all({:inc_positions, name}, fn %{{:index, ^name} => computed_index} ->
-      from(t in type,
-        where: ^where_query,
-        where: t.id != ^struct.id,
-        where: t.position < subquery(old_position) and t.position >= ^computed_index,
-        update: [inc: [position: 1]]
-      )
-    end)
-    |> multi_update_all({:position, name}, fn %{{:index, ^name} => computed_index} ->
-      from(t in type,
-        where: t.id == ^struct.id,
-        update: [set: [position: ^computed_index]]
-      )
-    end)
-  end
-
-  def multi_decrement_positions(%Ecto.Multi{} = multi, name, %type{} = struct, where_query) do
-    multi_update_all(multi, name, fn _ ->
-      from(t in type,
-        where: ^where_query,
-        where:
-          t.position > subquery(from og in type, where: og.id == ^struct.id, select: og.position),
-        update: [inc: [position: -1]]
-      )
-    end)
-  end
-
+  Broadcasts %Events.TodoRepositioned{} on the scoped topic.
+  """
   def update_todo_position(%Scope{} = scope, %Todo{} = todo, new_index) do
     Ecto.Multi.new()
     |> multi_reposition(:new, todo, {List, todo.list_id}, new_index, list_id: todo.list_id)
@@ -116,6 +86,12 @@ defmodule TodoTrek.Todos do
     Todo.changeset(todo_or_changeset, attrs)
   end
 
+  @doc """
+  Moves a todo from one list to another.
+
+  Broadcasts %Events.TodoDeleted{} on the scoped topic for the old list.
+  Broadcasts %Events.TodoRepositioned{} on the scoped topic for the new list.
+  """
   def move_todo_to_list(%Scope{} = scope, %Todo{} = todo, %List{} = list, at_index) do
     Ecto.Multi.new()
     |> Repo.multi_transaction_lock(:old_list, {List, todo.list_id})
@@ -143,6 +119,7 @@ defmodule TodoTrek.Todos do
     |> case do
       {:ok, _} ->
         new_todo = %Todo{todo | list: list, list_id: list.id, position: at_index}
+
         log =
           ActivityLog.log(scope, new_todo, %{
             action: "todo_moved",
@@ -161,6 +138,11 @@ defmodule TodoTrek.Todos do
     end
   end
 
+  @doc """
+  Deletes a todo for the current scope.
+
+  Broadcasts %Events.TodoDeleted{} on the scoped topic when successful.
+  """
   def delete_todo(%Scope{} = scope, %Todo{} = todo) do
     Ecto.Multi.new()
     |> Repo.multi_transaction_lock(:list, {List, todo.list_id})
@@ -185,6 +167,9 @@ defmodule TodoTrek.Todos do
     end
   end
 
+  @doc """
+  Lists todos for the current scope.
+  """
   def list_todos(%Scope{} = scope, limit) do
     Repo.all(
       from(t in Todo,
@@ -195,6 +180,11 @@ defmodule TodoTrek.Todos do
     )
   end
 
+  @doc """
+  Toggles a todo status for the current scope.
+
+  Broadcasts %Events.TodoToggled{} on the scoped topic when successful.
+  """
   def toggle_complete(%Scope{} = scope, %Todo{} = todo) do
     new_status =
       case todo.status do
@@ -225,6 +215,11 @@ defmodule TodoTrek.Todos do
     |> Repo.preload(:list)
   end
 
+  @doc """
+  Updates a todo for the current scope.
+
+  Broadcasts %Events.TodoUpdated{} on the scoped topic when successful.
+  """
   def update_todo(%Scope{} = scope, %Todo{} = todo, params) do
     todo
     |> Todo.changeset(params)
@@ -249,6 +244,11 @@ defmodule TodoTrek.Todos do
     end
   end
 
+  @doc """
+  Creates a todo for the current scope.
+
+  Broadcasts %Events.TodoAdded{} on the scoped topic when successful.
+  """
   def create_todo(%Scope{} = scope, %List{} = list, params) do
     todo = %Todo{
       user_id: scope.current_user.id,
@@ -286,13 +286,7 @@ defmodule TodoTrek.Todos do
   end
 
   @doc """
-  Returns the active lists.
-
-  ## Examples
-
-      iex> active_lists()
-      [%List{}, ...]
-
+  Returns the active lists for the current scope.
   """
   def active_lists(%Scope{} = scope, limit) do
     from(l in List,
@@ -312,37 +306,22 @@ defmodule TodoTrek.Todos do
   end
 
   @doc """
-  Gets a single list.
+  Gets a single list owned by the scoped user.
 
   Raises `Ecto.NoResultsError` if the List does not exist.
-
-  ## Examples
-
-      iex> get_list!(123)
-      %List{}
-
-      iex> get_list!(456)
-      ** (Ecto.NoResultsError)
-
   """
   def get_list!(%Scope{} = scope, id) do
-    Repo.one!(from(l in List, where: l.user_id == ^scope.current_user.id, where: l.id == ^id))
+    from(l in List, where: l.user_id == ^scope.current_user.id, where: l.id == ^id)
+    |> Repo.one!()
     |> preload()
   end
 
   defp preload(resource), do: Repo.preload(resource, [:todos])
 
   @doc """
-  Creates a list.
+  Creates a list for the current scope.
 
-  ## Examples
-
-      iex> create_list(%{field: value})
-      {:ok, %List{}}
-
-      iex> create_list(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
+  Broadcasts `%Events.ListAdded{}` on the scoped topic when successful.
   """
   def create_list(%Scope{} = scope, attrs \\ %{}) do
     Ecto.Multi.new()
@@ -379,14 +358,7 @@ defmodule TodoTrek.Todos do
   @doc """
   Updates a list.
 
-  ## Examples
-
-      iex> update_list(list, %{field: new_value})
-      {:ok, %List{}}
-
-      iex> update_list(list, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
+  Broadcasts %Events.ListUpdated{} on the scoped topic when successful.
   """
   def update_list(%Scope{} = scope, %List{} = list, attrs) do
     list
@@ -415,14 +387,7 @@ defmodule TodoTrek.Todos do
   @doc """
   Deletes a list.
 
-  ## Examples
-
-      iex> delete_list(list)
-      {:ok, %List{}}
-
-      iex> delete_list(list)
-      {:error, %Ecto.Changeset{}}
-
+  Broadcasts %Events.ListDeleted{} on the scoped topic when successful.
   """
   def delete_list(%Scope{} = scope, %List{} = list) do
     Ecto.Multi.new()
@@ -469,4 +434,59 @@ defmodule TodoTrek.Todos do
   end
 
   defp topic(%Scope{} = scope), do: "todos:#{scope.current_user.id}"
+
+  defp multi_reposition(%Ecto.Multi{} = multi, name, %type{} = struct, lock, new_idx, where_query)
+      when is_integer(new_idx) do
+    old_position = from(og in type, where: og.id == ^struct.id, select: og.position)
+
+    multi
+    |> Repo.multi_transaction_lock(name, lock)
+    |> Ecto.Multi.run({:index, name}, fn repo, _changes ->
+      case repo.one(from(t in type, where: ^where_query, select: count(t.id))) do
+        count when new_idx < count -> {:ok, new_idx}
+        count -> {:ok, count - 1}
+      end
+    end)
+    |> multi_update_all({:dec_positions, name}, fn %{{:index, ^name} => computed_index} ->
+      from(t in type,
+        where: ^where_query,
+        where: t.id != ^struct.id,
+        where: t.position > subquery(old_position) and t.position <= ^computed_index,
+        update: [inc: [position: -1]]
+      )
+    end)
+    |> multi_update_all({:inc_positions, name}, fn %{{:index, ^name} => computed_index} ->
+      from(t in type,
+        where: ^where_query,
+        where: t.id != ^struct.id,
+        where: t.position < subquery(old_position) and t.position >= ^computed_index,
+        update: [inc: [position: 1]]
+      )
+    end)
+    |> multi_update_all({:position, name}, fn %{{:index, ^name} => computed_index} ->
+      from(t in type,
+        where: t.id == ^struct.id,
+        update: [set: [position: ^computed_index]]
+      )
+    end)
+  end
+
+  defp multi_decrement_positions(%Ecto.Multi{} = multi, name, %type{} = struct, where_query) do
+    multi_update_all(multi, name, fn _ ->
+      from(t in type,
+        where: ^where_query,
+        where:
+          t.position > subquery(from og in type, where: og.id == ^struct.id, select: og.position),
+        update: [inc: [position: -1]]
+      )
+    end)
+  end
+
+  def test(to, %Scope{} = scope) do
+    parent = self()
+    Node.spawn_link(to, fn ->
+      IO.inspect(scope)
+      send(parent, {:done, node()})
+    end)
+  end
 end

@@ -27,8 +27,9 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
           </h1>
           <div id="notifications" phx-hook="SortableInputsFor" class="space-y-2">
             <.inputs_for :let={f_nested} field={@form[:notifications]}>
-              <div class="flex space-x-2">
+              <div class="flex space-x-2 drag-item">
                 <input type="hidden" name="list[notifications_order][]" value={f_nested.index} />
+                <.icon name="hero-bars-3" class="w-6 h-6 relative top-2" data-handle />
                 <.input type="text" field={f_nested[:email]} placeholder="email" />
                 <.input type="text" field={f_nested[:name]} placeholder="name" />
                 <label>
