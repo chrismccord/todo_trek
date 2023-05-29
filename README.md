@@ -12,8 +12,10 @@ The new List and edit List pages show examples of traditional nested forms with 
 
 To start your Phoenix server:
 
-  * Run `mix setup` to install and setup dependencies
+  * Run `mix setup` to install and setup dependencies, and seed data
   * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+  * The default user is `user@example.com` with `password password` as the password.
+  * Initial dummy data is seeded for the default user
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
