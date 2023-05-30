@@ -191,7 +191,9 @@ defmodule TodoTrekWeb.HomeLive do
 
     case logs do
       [] ->
-        assign(socket, end_of_timeline?: at == -1)
+        socket
+        |> assign(end_of_timeline?: at == -1)
+        |> stream(:activity_logs, [])
 
       [_ | _] = logs ->
         socket

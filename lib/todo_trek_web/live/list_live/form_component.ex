@@ -51,6 +51,8 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
           </label>
         </div>
 
+        <input type="hidden" name="list[notifications_delete][]" />
+
         <:actions>
           <.button phx-disable-with="Saving...">
             Save List
