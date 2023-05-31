@@ -114,12 +114,6 @@ defmodule TodoTrekWeb.ListLive.FormComponent do
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
-    if Ecto.Changeset.get_field(changeset, :notifications) == [] do
-      email = %Todos.List.EmailNotification{}
-      changeset = Ecto.Changeset.put_change(changeset, :notifications, [email])
-      assign(socket, :form, to_form(changeset))
-    else
-      assign(socket, :form, to_form(changeset))
-    end
+    assign(socket, :form, to_form(changeset))
   end
 end
