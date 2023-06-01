@@ -19,7 +19,6 @@
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
-// import {LiveSocket} from "phoenix_live_view"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import Sortable from "../vendor/sortable"
@@ -39,14 +38,16 @@ Hooks.LocalTime = {
 Hooks.Sortable = {
   mounted(){
     let group = this.el.dataset.group
+    let isDragging = false
+    this.el.addEventListener("focusout", e => isDragging && e.stopImmediatePropagation())
     let sorter = new Sortable(this.el, {
       group: group ? {name: group, pull: true, put: true} : undefined,
       animation: 150,
-      // delay: 100,
       dragClass: "drag-item",
       ghostClass: "drag-ghost",
-      // forceFallback: true,
+      onStart: e => isDragging = true, // prevent phx-blur from firing while dragging
       onEnd: e => {
+        isDragging = false
         let params = {old: e.oldIndex, new: e.newIndex, to: e.to.dataset, ...e.item.dataset}
         this.pushEventTo(this.el, this.el.dataset["drop"] || "reposition", params)
       }
