@@ -198,7 +198,7 @@ defmodule TodoTrekWeb.HomeLive do
       [_ | _] = logs ->
         socket
         |> assign(end_of_timeline?: false)
-        |> assign(page: if(logs == [], do: cur_page, else: new_page))
+        |> assign(page: new_page)
         |> stream(:activity_logs, logs, at: at, limit: limit)
     end
   end
