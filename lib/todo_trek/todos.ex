@@ -16,7 +16,7 @@ defmodule TodoTrek.Todos do
 
   For logged in users, this will be a topic scoped only to the logged in user.
   If the system is extended to allow shared lists, the topic subscription could
-  be derived for a particular organizatoin or team, particlar list, and so on.
+  be derived for a particular organization or team, particlar list, and so on.
   """
   def subscribe(%Scope{} = scope) do
     Phoenix.PubSub.subscribe(TodoTrek.PubSub, topic(scope))
