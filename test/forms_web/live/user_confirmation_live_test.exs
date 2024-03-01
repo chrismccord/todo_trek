@@ -51,14 +51,13 @@ defmodule TodoTrekWeb.UserConfirmationLiveTest do
 
       assert {:ok, conn} = result
 
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
-               "User confirmation link is invalid or it has expired"
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "You must log in to access this page."
 
       # when logged in
-      {:ok, lv, _html} =
+      conn =
         build_conn()
         |> log_in_user(user)
-        |> live(~p"/users/confirm/#{token}")
+      {:ok, lv, _html} = live(conn, ~p"/users/confirm/#{token}")
 
       result =
         lv
@@ -80,7 +79,7 @@ defmodule TodoTrekWeb.UserConfirmationLiveTest do
         |> follow_redirect(conn, ~p"/")
 
       assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
-               "User confirmation link is invalid or it has expired"
+               "You must log in to access this page."
 
       refute Accounts.get_user!(user.id).confirmed_at
     end

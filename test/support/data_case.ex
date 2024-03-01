@@ -32,6 +32,12 @@ defmodule TodoTrek.DataCase do
     :ok
   end
 
+
+  def user_scope(_) do
+    user = TodoTrek.AccountsFixtures.user_fixture()
+    %{scope: TodoTrek.Scope.for_user(user)}
+  end
+
   @doc """
   Sets up the sandbox based on the test tags.
   """

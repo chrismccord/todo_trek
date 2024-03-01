@@ -35,15 +35,15 @@ defmodule TodoTrek.MixProject do
       {:bcrypt_elixir, "~> 3.0"},
       {:phoenix, "~> 1.7.2"},
       {:phoenix_ecto, "~> 4.4"},
-      {:ecto, "~> 3.10.1"},
-      {:ecto_sql, "~> 3.10.1"},
+      {:ecto, "~> 3.11"},
+      {:ecto_sql, "~> 3.11"},
       {:postgrex, ">= 0.0.0"},
-      {:phoenix_html, "~> 3.3"},
+      {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, "~> 0.19.0", override: true},
+      {:phoenix_live_view, "~> 0.20", override: true},
       # {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", override: true},
       {:floki, ">= 0.30.0", only: :test},
-      {:phoenix_live_dashboard, "~> 0.7.2"},
+      {:phoenix_live_dashboard, "~> 0.8"},
       {:esbuild, "~> 0.7", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2.0", runtime: Mix.env() == :dev},
       {:swoosh, "~> 1.3"},
@@ -52,7 +52,7 @@ defmodule TodoTrek.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
-      {:plug_cowboy, "~> 2.5"}
+      {:bandit, "~> 1.0"}
     ]
   end
 

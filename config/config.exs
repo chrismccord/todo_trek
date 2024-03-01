@@ -12,6 +12,7 @@ config :todo_trek,
 
 # Configures the endpoint
 config :todo_trek, TodoTrekWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost"],
   render_errors: [
     formats: [html: TodoTrekWeb.ErrorHTML, json: TodoTrekWeb.ErrorJSON],
