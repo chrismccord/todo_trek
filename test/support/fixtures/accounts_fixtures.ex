@@ -23,6 +23,11 @@ defmodule TodoTrek.AccountsFixtures do
     user
   end
 
+  def user_scope(attrs \\ %{}) do
+    user = user_fixture(attrs)
+    TodoTrek.Scope.for_user(user)
+  end
+
   def extract_user_token(fun) do
     {:ok, captured_email} = fun.(&"[TOKEN]#{&1}[TOKEN]")
     [_, token | _] = String.split(captured_email.text_body, "[TOKEN]")

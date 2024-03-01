@@ -8,12 +8,15 @@ defmodule TodoTrek.TodosFixtures do
   Generate a list.
   """
   def list_fixture(attrs \\ %{}) do
-    {:ok, list} =
-      attrs
-      |> Enum.into(%{
+    list_fixture(TodoTrek.AccountsFixtures.user_scope(), attrs)
+  end
+
+  def list_fixture(%TodoTrek.Scope{} = scope, attrs) do
+    attrs = Enum.into(attrs, %{
         title: "some title"
       })
-      |> TodoTrek.Todos.create_list()
+
+    {:ok, list} = TodoTrek.Todos.create_list(scope, attrs)
 
     list
   end
